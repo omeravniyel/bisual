@@ -22,6 +22,12 @@ class User(Base):
     role = Column(String, default="teacher") # 'teacher', 'super_admin'
     is_approved = Column(Boolean, default=False)
     
+    # Enhanced Profile
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    
     quizzes = relationship("Quiz", back_populates="owner")
 
 class Question(Base):

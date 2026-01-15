@@ -7,6 +7,10 @@ class OptionBase(BaseModel):
 
 class UserBase(BaseModel):
     username: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str

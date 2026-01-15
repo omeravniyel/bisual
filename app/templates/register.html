@@ -39,6 +39,31 @@
         {% endif %}
 
         <form action="/register" method="POST" class="space-y-6">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2">Ad</label>
+                    <input type="text" name="first_name" required
+                        class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-400 mb-2">Soyad</label>
+                    <input type="text" name="last_name" required
+                        class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-400 mb-2">E-posta</label>
+                <input type="email" name="email" required
+                    class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-400 mb-2">Telefon</label>
+                <input type="tel" name="phone" required
+                    class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+            </div>
+
             <div>
                 <label class="block text-sm font-bold text-gray-400 mb-2">Kullanıcı Adı</label>
                 <input type="text" name="username" required

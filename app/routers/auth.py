@@ -40,14 +40,32 @@ async def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
 @router.post("/register")
-async def register(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+async def register(
+    request: Request, 
+    username: str = Form(...), 
+    password: str = Form(...), 
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    db: Session = Depends(get_db)
+):
     # Check if user exists
     existing_user = db.query(models.User).filter(models.User.username == username).first()
     if existing_user:
         return templates.TemplateResponse("register.html", {"request": request, "error": "Bu kullanıcı adı zaten alınmış."})
     
     # Create Pending User
-    new_user = models.User(username=username, password=password, role="teacher", is_approved=False)
+    new_user = models.User(
+        username=username, 
+        password=password, 
+        role="teacher", 
+        is_approved=False,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone
+    )
     db.add(new_user)
     db.commit()
     
@@ -106,4 +124,32 @@ async def reject_user(user_id: int, request: Request, db: Session = Depends(get_
          db.delete(user_to_delete)
          db.commit()
         
+    return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/super-admin/edit/{user_id}")
+async def edit_user(
+    user_id: int, 
+    request: Request, 
+    first_name: str = Form(None),
+    last_name: str = Form(None),
+    email: str = Form(None),
+    phone: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: return RedirectResponse("/login")
+    
+    admin = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not admin or admin.role != 'super_admin':
+        return RedirectResponse("/host")
+        
+    user_to_edit = db.query(models.User).filter(models.User.id == user_id).first()
+    if user_to_edit:
+        if first_name: user_to_edit.first_name = first_name
+        if last_name: user_to_edit.last_name = last_name
+        if email: user_to_edit.email = email
+        if phone: user_to_edit.phone = phone
+        db.commit()
+    
     return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
