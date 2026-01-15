@@ -416,6 +416,58 @@
         </div>
 
         <!-- Time Selector Modal -->
+        <div x-show="showTimeSelector" @click.self="showTimeSelector = false"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] backdrop-blur-sm"
+            style="display: none;">
+            <div class="bg-white p-6 rounded-2xl w-full max-w-lg shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-700">Zaman sınırı</h2>
+                    <button @click="showTimeSelector = false"
+                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                </div>
+                <div class="grid grid-cols-4 gap-3">
+                    <template x-for="time in [5, 10, 20, 30, 60, 90, 120, 240]">
+                        <button @click="currentQuestion.time_limit = time; showTimeSelector = false"
+                            class="p-3 rounded-lg border-2 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-gray-700"
+                            :class="currentQuestion.time_limit === time ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'"
+                            x-text="formatTime(time)"></button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Points Selector Modal -->
+        <div x-show="showPointsSelector" @click.self="showPointsSelector = false"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] backdrop-blur-sm"
+            style="display: none;">
+            <div class="bg-white p-6 rounded-2xl w-full max-w-sm shadow-2xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-700">Puan</h2>
+                    <button @click="showPointsSelector = false"
+                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                </div>
+                <div class="flex flex-col gap-3">
+                    <button @click="currentQuestion.points = 1000; showPointsSelector = false"
+                        class="p-4 rounded-lg border-2 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-gray-700 flex justify-between items-center"
+                        :class="currentQuestion.points === 1000 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <span>Standart</span>
+                        <span>1000</span>
+                    </button>
+                    <button @click="currentQuestion.points = 2000; showPointsSelector = false"
+                        class="p-4 rounded-lg border-2 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-gray-700 flex justify-between items-center"
+                        :class="currentQuestion.points === 2000 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <span>İki Katı</span>
+                        <span>2000</span>
+                    </button>
+                    <button @click="currentQuestion.points = 0; showPointsSelector = false"
+                        class="p-4 rounded-lg border-2 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-gray-700 flex justify-between items-center"
+                        :class="currentQuestion.points === 0 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <span>Puan Yok</span>
+                        <span>0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Theme Selector Modal -->
