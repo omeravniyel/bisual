@@ -31,6 +31,26 @@
     <main class="flex-1 p-8 overflow-y-auto">
         <div class="max-w-4xl mx-auto">
 
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-sm text-gray-500 font-bold mb-1">Toplam Kullanıcı</div>
+                    <div class="text-3xl font-black text-gray-800">{{ stats.total_users }}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-sm text-gray-500 font-bold mb-1">Aktif Öğretmen</div>
+                    <div class="text-3xl font-black text-purple-600">{{ stats.active_teachers }}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-sm text-gray-500 font-bold mb-1">Bekleyen Onay</div>
+                    <div class="text-3xl font-black text-orange-500">{{ stats.pending_approval }}</div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <div class="text-sm text-gray-500 font-bold mb-1">Oluşturulan Yarışma</div>
+                    <div class="text-3xl font-black text-pink-600">{{ stats.total_quizzes }}</div>
+                </div>
+            </div>
+
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Bekleyen Onaylar</h2>
 
             {% if pending_users %}
@@ -88,6 +108,52 @@
                 <p class="text-sm text-gray-400">Her şey yolunda!</p>
             </div>
             {% endif %}
+
+            <!-- Approved Users Section -->
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 mt-12">Onaylı Öğretmenler</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-12">
+                <table class="w-full text-left">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-4">Ad Soyad</th>
+                            <th class="px-6 py-4">İletişim</th>
+                            <th class="px-6 py-4 text-right">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for user in approved_users %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="font-bold text-gray-800">{{ user.first_name }} {{ user.last_name }}</div>
+                                <div class="text-xs text-gray-400">@{{ user.username }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-600">{{ user.email }}</div>
+                                <div class="text-xs text-gray-400">{{ user.phone }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                <button type="button" @click="$dispatch('open-edit-modal', { 
+                                        id: '{{ user.id }}', 
+                                        first_name: '{{ user.first_name }}', 
+                                        last_name: '{{ user.last_name }}',
+                                        email: '{{ user.email }}', 
+                                        phone: '{{ user.phone }}' 
+                                    })"
+                                    class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg font-bold hover:bg-gray-300 transition text-sm">
+                                    Düzenle
+                                </button>
+
+                                <form action="/super-admin/reject/{{ user.id }}" method="POST"
+                                    onsubmit="return confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?');">
+                                    <button type="submit"
+                                        class="bg-red-50 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-100 transition text-sm">Sil</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
         </div>
     </main>

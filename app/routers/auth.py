@@ -92,7 +92,24 @@ async def super_admin_dashboard(request: Request, db: Session = Depends(get_db))
     # Fetch Pending Users
     pending_users = db.query(models.User).filter(models.User.is_approved == False).all()
     
-    return templates.TemplateResponse("super_admin.html", {"request": request, "pending_users": pending_users, "admin_name": user.username})
+    # Fetch Approved Users (Active Teachers)
+    approved_users = db.query(models.User).filter(models.User.is_approved == True, models.User.role != 'super_admin').all()
+    
+    # Statistics
+    stats = {
+        "total_users": db.query(models.User).count(),
+        "total_quizzes": db.query(models.Quiz).count(),
+        "active_teachers": len(approved_users),
+        "pending_approval": len(pending_users)
+    }
+    
+    return templates.TemplateResponse("super_admin.html", {
+        "request": request, 
+        "pending_users": pending_users, 
+        "approved_users": approved_users,
+        "stats": stats,
+        "admin_name": user.username
+    })
 
 @router.post("/super-admin/approve/{user_id}")
 async def approve_user(user_id: int, request: Request, db: Session = Depends(get_db)):
