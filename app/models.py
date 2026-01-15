@@ -21,6 +21,7 @@ class User(Base):
     password = Column(String) # Storing plain for strict MVP, usually hash it
     role = Column(String, default="teacher") # 'teacher', 'super_admin'
     is_approved = Column(Boolean, default=False)
+    reset_requested = Column(Boolean, default=False)
     
     # Enhanced Profile
     first_name = Column(String, nullable=True)

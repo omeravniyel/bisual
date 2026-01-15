@@ -31,6 +31,18 @@
     <main class="flex-1 p-8 overflow-y-auto">
         <div class="max-w-4xl mx-auto">
 
+            {% if new_password_alert %}
+            <div class="bg-indigo-100 border-l-4 border-indigo-500 text-indigo-700 p-4 mb-6 rounded shadow-md"
+                role="alert">
+                <p class="font-bold">Şifre Başarıyla Sıfırlandı</p>
+                <p>Kullanıcı: <span class="font-mono bg-indigo-200 px-1 rounded">{{ new_password_alert.username
+                        }}</span></p>
+                <p>Yeni Şifre: <span class="font-mono text-xl font-bold bg-white px-2 py-1 rounded select-all">{{
+                        new_password_alert.password }}</span></p>
+                <p class="text-sm mt-2 text-indigo-600">Lütfen bu şifreyi kullanıcıya iletin.</p>
+            </div>
+            {% endif %}
+
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -50,6 +62,45 @@
                     <div class="text-3xl font-black text-pink-600">{{ stats.total_quizzes }}</div>
                 </div>
             </div>
+
+            <!-- PASSWORD RESET REQUESTS -->
+            {% if reset_requests %}
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Şifre Sıfırlama İstekleri</h2>
+            <div class="bg-white rounded-xl shadow-sm border border-orange-200 overflow-hidden mb-12">
+                <table class="w-full text-left">
+                    <thead class="bg-orange-50 text-orange-600 uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-4">Kullanıcı</th>
+                            <th class="px-6 py-4">Email</th>
+                            <th class="px-6 py-4 text-right">İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for user in reset_requests %}
+                        <tr class="hover:bg-orange-50/50 transition">
+                            <td class="px-6 py-4 font-bold text-gray-800">{{ user.username }}</td>
+                            <td class="px-6 py-4 text-gray-600">{{ user.email }}</td>
+                            <td class="px-6 py-4 text-right flex justify-end gap-2">
+                                <form action="/super-admin/reset-approve/{{ user.id }}" method="POST">
+                                    <button type="submit"
+                                        class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-500 text-xs">
+                                        Onayla & Sıfırla
+                                    </button>
+                                </form>
+                                <form action="/super-admin/reset-reject/{{ user.id }}" method="POST">
+                                    <button type="submit"
+                                        class="bg-gray-200 text-gray-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-300 text-xs">
+                                        Reddet
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
 
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Bekleyen Onaylar</h2>
 
@@ -77,6 +128,7 @@
                             <td class="px-6 py-4 text-right flex justify-end gap-2">
                                 <button type="button" @click="editModalOpen = true; editUser = { 
                                         id: '{{ user.id }}', 
+                                        username: '{{ user.username }}',
                                         first_name: '{{ user.first_name }}', 
                                         last_name: '{{ user.last_name }}',
                                         email: '{{ user.email }}', 
@@ -134,6 +186,7 @@
                             <td class="px-6 py-4 text-right flex justify-end gap-2">
                                 <button type="button" @click="editModalOpen = true; editUser = { 
                                         id: '{{ user.id }}', 
+                                        username: '{{ user.username }}',
                                         first_name: '{{ user.first_name }}', 
                                         last_name: '{{ user.last_name }}',
                                         email: '{{ user.email }}', 
@@ -173,6 +226,19 @@
                                 <div class="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                                     <h3 class="text-base font-semibold leading-6 text-gray-900" id="modal-title">
                                         Kullanıcı Düzenle</h3>
+                                    <div class="mt-4 grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Kullanıcı Adı</label>
+                                            <input type="text" name="username" :value="editUser.username"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Yeni Şifre
+                                                (Opsiyonel)</label>
+                                            <input type="text" name="password" placeholder="Değiştirmek için yazın"
+                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2">
+                                        </div>
+                                    </div>
                                     <div class="mt-4 grid grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700">Ad</label>

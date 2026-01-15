@@ -148,6 +148,8 @@ async def reject_user(user_id: int, request: Request, db: Session = Depends(get_
 async def edit_user(
     user_id: int, 
     request: Request, 
+    username: str = Form(None),
+    password: str = Form(None),
     first_name: str = Form(None),
     last_name: str = Form(None),
     email: str = Form(None),
@@ -163,6 +165,8 @@ async def edit_user(
         
     user_to_edit = db.query(models.User).filter(models.User.id == user_id).first()
     if user_to_edit:
+        if username: user_to_edit.username = username
+        if password and len(password) > 0: user_to_edit.password = password
         if first_name: user_to_edit.first_name = first_name
         if last_name: user_to_edit.last_name = last_name
         if email: user_to_edit.email = email
@@ -171,12 +175,9 @@ async def edit_user(
     
     return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
 
-# --- PASSWORD RECOVERY ---
-from itsdangerous import URLSafeTimedSerializer
-
-# Secret key for token generation (In prod, move to Env Var)
-SECRET_KEY = "bisual_secret_key_change_me"
-security = URLSafeTimedSerializer(SECRET_KEY)
+# --- PASSWORD RECOVERY (ADMIN MANAGED) ---
+import random
+import string
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
@@ -186,68 +187,78 @@ async def forgot_password_page(request: Request):
 async def forgot_password_submit(request: Request, email: str = Form(...), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == email).first()
     
-    if not user:
-        # Security: Don't reveal if user exists. Delay slightly if needed to prevent timing attacks.
-        return templates.TemplateResponse("forgot_password.html", {
-            "request": request, 
-            "message": "Eğer e-posta sistemde kayıtlıysa sıfırlama bağlantısı gönderildi."
-        })
+    if user:
+        user.reset_requested = True
+        db.commit()
     
-    # Generate Token (Valid for 1 hour)
-    token = security.dumps(user.email, salt="password-reset-salt")
-    
-    # Generate Link
-    # For now, we assume current host. In prod, use explicit domain.
-    base_url = str(request.base_url).rstrip("/")
-    reset_link = f"{base_url}/reset-password/{token}"
-    
-    # TODO: Send Email via SMTP
-    # For now: Print to console
-    print(f"\n[PASSWORD RESET] Link for {email}: {reset_link}\n")
-    
+    # Always show success message for security (user enumeration prevention)
     return templates.TemplateResponse("forgot_password.html", {
         "request": request, 
-        "message": "Eğer e-posta sistemde kayıtlıysa sıfırlama bağlantısı gönderildi. (Geliştirici Notu: Link Terminalde)"
+        "message": "Talep alındı. Yöneticiniz onayladığında yeni şifreniz size iletilecektir."
     })
 
-@router.get("/reset-password/{token}", response_class=HTMLResponse)
-async def reset_password_page(request: Request, token: str):
-    try:
-        email = security.loads(token, salt="password-reset-salt", max_age=3600)
-    except:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Bağlantı geçersiz veya süresi dolmuş."})
-        
-    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
-
-@router.post("/reset-password/{token}")
-async def reset_password_submit(
-    request: Request, 
-    token: str,
-    password: str = Form(...), 
-    confirm_password: str = Form(...), 
-    db: Session = Depends(get_db)
-):
-    try:
-        email = security.loads(token, salt="password-reset-salt", max_age=3600)
-    except:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Bağlantı geçersiz veya süresi dolmuş."})
+# --- SUPER ADMIN UPDATE ---
+@router.post("/super-admin/reset-approve/{user_id}")
+async def approve_password_reset(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: return RedirectResponse("/login")
     
-    if password != confirm_password:
-        return templates.TemplateResponse("reset_password.html", {
+    admin = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not admin or admin.role != 'super_admin':
+        return RedirectResponse("/host")
+        
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        # Generate Random Password (8 chars)
+        new_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        user.password = new_password
+        user.reset_requested = False
+        db.commit()
+        
+        # We need to show this password to the Admin!
+        # Redirect back with a query param or render template directly? 
+        # Rendering directly is safer as we can pass the new_password context.
+        
+        # Re-fetch data for dashboard
+        pending_users = db.query(models.User).filter(models.User.is_approved == False).all()
+        approved_users = db.query(models.User).filter(models.User.is_approved == True, models.User.role != 'super_admin').all()
+        reset_requests = db.query(models.User).filter(models.User.reset_requested == True).all()
+        
+        stats = {
+            "total_users": db.query(models.User).count(),
+            "total_quizzes": db.query(models.Quiz).count(),
+            "active_teachers": len(approved_users),
+            "pending_approval": len(pending_users)
+        }
+        
+        return templates.TemplateResponse("super_admin.html", {
             "request": request, 
-            "token": token, 
-            "error": "Şifreler eşleşmiyor."
+            "pending_users": pending_users, 
+            "approved_users": approved_users,
+            "reset_requests": reset_requests,
+            "stats": stats,
+            "admin_name": admin.username,
+            "new_password_alert": {
+                "username": user.username,
+                "password": new_password
+            }
         })
+
+    return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
+
+@router.post("/super-admin/reset-reject/{user_id}")
+async def reject_password_reset(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: return RedirectResponse("/login")
+    
+    admin = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not admin or admin.role != 'super_admin':
+        return RedirectResponse("/host")
         
-    user = db.query(models.User).filter(models.User.email == email).first()
-    if not user:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Kullanıcı bulunamadı."})
-    
-    # Update Password
-    user.password = password # In prod, ensure this is hashed! (Currently storing raw based on existing code)
-    db.commit()
-    
-    return templates.TemplateResponse("login.html", {
-        "request": request, 
-        "error": "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz." # Using 'error' div for success message mostly to reuse style, or update login.html to support success msg
-    })
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user:
+        user.reset_requested = False
+        db.commit()
+        
+    return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
