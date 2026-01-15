@@ -29,9 +29,13 @@ app = FastAPI(title="BiSual - Interactive Quiz Platform")
 # Mount bundled static files (CSS, JS, Audio) - Read Only
 app.mount("/static", StaticFiles(directory=resource_path("app/static")), name="static")
 
-# Mount Uploads directory - Writable (Next to EXE)
+# Mount Uploads directory - Writable (Next to EXE or /tmp for Vercel)
 # We ensure the folder exists
-UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+if os.environ.get("VERCEL"):
+    UPLOAD_DIR = "/tmp/uploads"
+else:
+    UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
+
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
