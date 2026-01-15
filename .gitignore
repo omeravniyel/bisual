@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+dist/
+build/
+*.spec
+bisual.db
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+.env
+.DS_Store
+.vscode/

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiSual - Yarışma Oluştur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f2f2f2;
+            overflow: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .slide-card {
+            transition: all 0.2s;
+        }
+
+        .slide-card.active {
+            border-color: #46178f;
+            box-shadow: 0 0 0 2px #46178f;
+            background-color: #f0f4ff;
+        }
+
+        .answer-input-container {
+            transition: all 0.2s;
+        }
+
+        .answer-input-container:focus-within {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col" x-data="quizEditor()">
+
+    <!-- TOP NAVBAR -->
+    <nav class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-4 z-20 shadow-sm shrink-0">
+        <div class="flex items-center gap-4">
+            <div class="w-8 h-8 bg-indigo-600 rounded-sm"></div> <!-- Logo Placeholder -->
+            <input type="text" x-model="quiz.title"
+                class="font-bold text-lg border border-transparent hover:border-gray-300 rounded px-2 py-1 outline-none focus:border-indigo-600 transition"
+                placeholder="Yarışma başlığı gir...">
+
+            <button
+                class="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-sm font-bold text-gray-700 transition">Ayarlar</button>
+        </div>
+
+        <div class="flex gap-3">
+            <button @click="window.location.href='/'"
+                class="px-4 py-2 font-bold text-gray-500 hover:bg-gray-100 rounded transition">Çık</button>
+            <button @click="saveQuiz()"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded font-bold transition shadow-sm">Kaydet</button>
+        </div>
+    </nav>
+
+    <!-- MAIN EDITOR AREA -->
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- LEFT SIDEBAR (SLIDES) -->
+        <div class="w-48 bg-white border-r border-gray-200 flex flex-col p-2 overflow-y-auto shrink-0">
+            <div class="flex flex-col gap-3">
+                <template x-for="(q, index) in quiz.questions" :key="index">
+                    <div @click="currentIndex = index"
+                        class="slide-card p-3 rounded-lg border-2 border-gray-200 cursor-pointer relative group flex flex-col gap-2 h-28 hover:bg-gray-50 bg-white"
+                        :class="{'active': currentIndex === index}">
+
+                        <div class="text-xs font-bold text-gray-500 flex justify-between">
+                            <span x-text="index + 1"></span>
+                            <button @click.stop="removeQuestion(index)"
+                                class="opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-100 rounded px-1">🗑️</button>
+                        </div>
+
+                        <!-- Mini Preview -->
+                        <div class="flex-1 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
+                            <span class="text-[0.5rem] text-gray-400 text-center px-1 truncate"
+                                x-text="q.text || 'Soru ...'"></span>
+                        </div>
+
+                        <div class="flex justify-center gap-0.5">
+                            <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <button @click="addQuestion()"
+                class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded shadow-lg font-bold transition transform active:scale-95">
+                + Soru Ekle
+            </button>
+        </div>
+
+        <!-- CENTER CANVAS -->
+        <div class="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-y-auto relative transition-all duration-500"
+            :class="{
+                'bg-[url(\'https://www.transparenttextures.com/patterns/cubes.png\')]': quiz.theme === 'standard',
+                'bg-blue-100': quiz.theme === 'winter',
+                'bg-green-100': quiz.theme === 'spring',
+                'bg-yellow-100': quiz.theme === 'summer',
+                'bg-orange-100': quiz.theme === 'autumn',
+                'bg-gradient-to-br from-blue-500 to-yellow-400': quiz.theme === 'ukraine'
+             }">
+
+            <div class="w-full max-w-4xl flex-1 flex flex-col gap-6">
+
+                <!-- Question Input -->
+                <div class="bg-white p-2 rounded shadow-sm">
+                    <input type="text" x-model="currentQuestion.text"
+                        class="w-full text-center text-3xl font-bold p-4 outline-none placeholder-gray-300 text-gray-800"
+                        placeholder="Sorunu girmeye başla">
+                </div>
+
+                <!-- Media Area -->
+                <div class="flex-1 bg-white rounded flex items-center justify-center min-h-[300px] border-2 border-dashed border-gray-300 relative group cursor-pointer hover:border-indigo-400 transition hover:bg-indigo-50"
+                    @click="$refs.fileInput.click()">
+
+                    <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="uploadImage($event)">
+
+                    <div class="text-center">
+                        <div class="text-6xl mb-4 opacity-20">🖼️</div>
+                        <div class="font-bold text-gray-400 group-hover:text-indigo-500"
+                            x-show="!currentQuestion.image_url">
+                            Resim Yükle<br>
+                            <span class="text-xs font-normal opacity-70">(veya sürükle bırak)</span>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div x-show="currentQuestion.image_url"
+                        class="absolute inset-0 w-full h-full bg-gray-50 group-hover:opacity-50 transition p-4">
+                        <img :src="currentQuestion.image_url" class="w-full h-full object-contain">
+                    </div>
+
+                    <!-- Hover Action -->
+                    <div x-show="currentQuestion.image_url"
+                        class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">
+                        <span
+                            class="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold shadow-lg">Değiştir</span>
+                    </div>
+                </div>
+
+                <!-- Answer Grid -->
+                <!-- Answer Grid (Dynamic) -->
+                <div class="grid grid-cols-2 gap-4 h-64"
+                    x-show="['multiple_choice', 'poll'].includes(currentQuestion.question_type)">
+                    <template x-for="(opt, idx) in currentQuestion.options" :key="idx">
+                        <div class="answer-input-container rounded-lg p-3 flex items-center gap-3 shadow-sm group transition"
+                            :class="{
+                                'bg-red-600': idx === 0,
+                                'bg-blue-600': idx === 1,
+                                'bg-yellow-500': idx === 2,
+                                'bg-green-600': idx === 3
+                             }">
+                            <div class="w-10 h-10 flex items-center justify-center text-white text-2xl font-bold"
+                                x-text="['▲','◆','●','■'][idx]"></div>
+                            <div class="flex-1 h-full bg-white rounded flex items-center px-4 relative">
+                                <input type="text" x-model="opt.text"
+                                    class="w-full h-full outline-none font-medium text-gray-700"
+                                    :placeholder="'Cevap ekle ' + (idx+1)">
+                                <button x-show="currentQuestion.question_type !== 'poll'" @click="toggleCorrect(idx)"
+                                    class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center ml-2 transition hover:bg-green-50"
+                                    :class="opt.is_correct ? 'bg-green-500 border-green-500 text-white' : 'text-transparent'">
+                                    ✓
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- True/False Grid -->
+                <div class="grid grid-cols-2 gap-4 h-64" x-show="currentQuestion.question_type === 'true_false'">
+                    <div class="h-full bg-blue-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-lg relative border-4"
+                        :class="currentQuestion.options[0].is_correct ? 'border-green-400' : 'border-transparent'"
+                        @click="setTrueFalse(0)">
+                        <div class="text-white text-4xl font-black mb-2">DOĞRU</div>
+                        <div class="text-blue-200 text-6xl">◆</div>
+                        <div x-show="currentQuestion.options[0].is_correct"
+                            class="absolute top-4 right-4 bg-green-500 text-white rounded-full p-2 text-xl font-bold">✓
+                        </div>
+                    </div>
+                    <div class="h-full bg-red-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-lg relative border-4"
+                        :class="currentQuestion.options[1].is_correct ? 'border-green-400' : 'border-transparent'"
+                        @click="setTrueFalse(1)">
+                        <div class="text-white text-4xl font-black mb-2">YANLIŞ</div>
+                        <div class="text-red-200 text-6xl">▲</div>
+                        <div x-show="currentQuestion.options[1].is_correct"
+                            class="absolute top-4 right-4 bg-green-500 text-white rounded-full p-2 text-xl font-bold">✓
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Type Answer -->
+                <div class="w-full h-64 bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-sm"
+                    x-show="currentQuestion.question_type === 'typing'">
+                    <h3 class="text-gray-500 font-bold mb-4 uppercase tracking-wider">Doğru Cevabı Yazın</h3>
+                    <input type="text" x-model="currentQuestion.options[0].text"
+                        class="w-full max-w-lg text-center text-3xl font-bold border-b-4 border-gray-300 focus:border-indigo-600 outline-none p-4 transition placeholder-gray-200 text-indigo-600"
+                        placeholder="Cevap buraya...">
+                    <p class="mt-4 text-xs text-gray-400">Büyük/küçük harf duyarlılığı yoktur.</p>
+                </div>
+
+                <!-- Pin Drop (Marked Answer) -->
+                <div class="w-full h-auto bg-white rounded-lg p-4 flex flex-col items-center justify-center shadow-sm"
+                    x-show="currentQuestion.question_type === 'marked_answer'">
+                    <div class="text-center mb-4">
+                        <h3 class="text-gray-500 font-bold uppercase tracking-wider">Doğru Yeri İşaretleyin</h3>
+                        <p class="text-xs text-gray-400">Görselin üzerinde doğru cevabın bulunduğu noktaya tıklayın.</p>
+                    </div>
+
+                    <!-- Image Container for Pinning -->
+                    <div class="relative w-full max-w-2xl border-2 border-indigo-100 rounded-lg overflow-hidden cursor-crosshair group"
+                        x-show="currentQuestion.image_url" @click="setPin($event)">
+
+                        <img :src="currentQuestion.image_url" class="w-full h-auto object-contain block">
+
+                        <!-- Pin Marker -->
+                        <div x-show="currentQuestion.options[0].text"
+                            class="absolute w-8 h-8 -ml-4 -mt-8 text-4xl drop-shadow-lg transition-all duration-200 pointer-events-none"
+                            :style="'left: ' + (currentQuestion.options[0].text ? currentQuestion.options[0].text.split(',')[0] + '%' : '50%') + '; top: ' + (currentQuestion.options[0].text ? currentQuestion.options[0].text.split(',')[1] + '%' : '50%')">
+                            📍
+                        </div>
+                    </div>
+
+                    <div x-show="!currentQuestion.image_url"
+                        class="p-8 text-red-400 font-bold bg-red-50 rounded-lg border border-red-200">
+                        ⚠️ Önce yukarıdan bir görsel eklemelisiniz.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR (SETTINGS) -->
+        <div class="w-64 bg-white border-l border-gray-200 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto">
+
+            <!-- Type Selector Trigger -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Soru Türü</label>
+                <button @click="showTypeSelector = true"
+                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-3 flex items-center justify-between shadow-sm transition group">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl" x-text="getTypeIcon(currentQuestion.question_type)"></span>
+                        <span class="font-bold text-gray-700"
+                            x-text="getTypeName(currentQuestion.question_type)"></span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Time Limit -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Zaman sınırı
+                </label>
+                <button @click="showTimeSelector = true"
+                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    <span x-text="formatTime(currentQuestion.time_limit)"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Points -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Puan
+                </label>
+                <button @click="showPointsSelector = true"
+                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    <span x-text="formatPoints(currentQuestion.points)"></span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                            clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Themes Trigger -->
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tema</label>
+                <button @click="showThemeSelector = true"
+                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    <span x-text="getThemeName(quiz.theme)"></span>
+                    <span class="text-xl">🎨</span>
+                </button>
+            </div>
+
+            <div class="mt-auto pt-8 text-center text-gray-300 text-xs text-balance">
+                Kahoot Tarzı BiSual<br>Editor V1.0
+            </div>
+
+        </div>
+
+        <!-- Success Modal -->
+        <div x-show="showSuccess"
+            class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm"
+            style="display: none;">
+            <div class="bg-white p-8 rounded-xl text-center max-w-sm mx-auto shadow-2xl animate-bounce">
+                <div class="text-5xl mb-4">🎉</div>
+                <h2 class="text-2xl font-black text-gray-800 mb-2">Hazır!</h2>
+                <p class="text-gray-500 mb-6">Yarışma başarıyla kaydedildi.</p>
+                <a href="/host"
+                    class="bg-indigo-600 text-white px-6 py-2 rounded font-bold block w-full hover:bg-indigo-700">
+                    Başlat
+                </a>
+            </div>
+        </div>
+
+        <!-- Type Selector Modal -->
+        <div x-show="showTypeSelector" @click.self="showTypeSelector = false"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] backdrop-blur-sm"
+            style="display: none;">
+            <div class="bg-white p-6 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-700">Soru türü seç</h2>
+                    <button @click="showTypeSelector = false"
+                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <!-- Quiz -->
+                    <button @click="changeType('multiple_choice')"
+                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
+                        :class="currentQuestion.question_type === 'multiple_choice' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <div class="text-3xl">💠</div>
+                        <span class="font-bold text-gray-700">Quiz</span>
+                    </button>
+
+                    <!-- True/False -->
+                    <button @click="changeType('true_false')"
+                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
+                        :class="currentQuestion.question_type === 'true_false' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <div class="text-3xl flex gap-1"><span class="text-blue-500">▮</span><span
+                                class="text-red-500">▮</span></div>
+                        <span class="font-bold text-gray-700">Doğru/Yanlış</span>
+                    </button>
+
+                    <!-- Type Answer -->
+                    <button @click="changeType('typing')"
+                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
+                        :class="currentQuestion.question_type === 'typing' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <div class="text-3xl">⌨️</div>
+                        <span class="font-bold text-gray-700">Kısa Cevap</span>
+                    </button>
+
+                    <!-- Pin Drop -->
+                    <button @click="changeType('marked_answer')"
+                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
+                        :class="currentQuestion.question_type === 'marked_answer' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <div class="text-3xl">📍</div>
+                        <span class="font-bold text-gray-700">İşaretli Cevap</span>
+                    </button>
+
+                    <!-- Poll -->
+                    <button @click="changeType('poll')"
+                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
+                        :class="currentQuestion.question_type === 'poll' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
+                        <div class="text-3xl">📊</div>
+                        <span class="font-bold text-gray-700">Oylama</span>
+                    </button>
+
+                    <!-- Coming Soon -->
+                    <button
+                        class="p-4 rounded-xl border-2 border-gray-100 bg-gray-50 cursor-not-allowed opacity-60 flex flex-col items-center gap-3 text-center h-32 justify-center">
+                        <div class="text-2xl grayscale">🧩</div>
+                        <span class="font-bold text-gray-400">Puzzle</span>
+                    </button>
+                    <button
+                        class="p-4 rounded-xl border-2 border-gray-100 bg-gray-50 cursor-not-allowed opacity-60 flex flex-col items-center gap-3 text-center h-32 justify-center">
+                        <div class="text-2xl grayscale">☁️</div>
+                        <span class="font-bold text-gray-400">Kelime</span>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Selector Modal -->
+    </div>
+
+    <!-- Theme Selector Modal -->
+    <div x-show="showThemeSelector" @click.self="showThemeSelector = false"
+        class="fixed inset-0 bg-black/50 flex justify-end z-[70] backdrop-blur-sm" style="display: none;" x-transition>
+        <div class="w-80 bg-white h-full shadow-2xl p-4 overflow-y-auto flex flex-col gap-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold">Temalar</h2>
+                <button @click="showThemeSelector = false" class="text-2xl hover:bg-gray-100 rounded p-1">×</button>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center text-gray-500 font-bold text-sm mb-2 cursor-pointer">
+                    <span>Temaların</span>
+                    <span>▼</span>
+                </div>
+                <div
+                    class="border-2 border-dashed border-gray-300 rounded-lg h-24 flex items-center justify-center text-gray-400 cursor-pointer hover:border-indigo-500 hover:text-indigo-500 transition">
+                    <span class="text-4xl font-light">+</span>
+                </div>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center text-gray-500 font-bold text-sm mb-2 cursor-pointer">
+                    <span>Ücretsiz</span>
+                    <span>▼</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Standard -->
+                    <div @click="setTheme('standard')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-indigo-900 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'standard' ? 'border-indigo-600' : 'border-transparent'">
+                            <!-- Simulating standard background -->
+                            <div
+                                class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-50">
+                            </div>
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'standard' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Standard</div>
+                    </div>
+
+                    <!-- Winter -->
+                    <div @click="setTheme('winter')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-blue-200 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'winter' ? 'border-indigo-600' : 'border-transparent'">
+                            <div class="absolute inset-0 text-4xl flex items-center justify-center">❄️</div>
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'winter' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Winter</div>
+                    </div>
+
+                    <!-- Spring -->
+                    <div @click="setTheme('spring')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-green-200 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'spring' ? 'border-indigo-600' : 'border-transparent'">
+                            <div class="absolute inset-0 text-4xl flex items-center justify-center">🌸</div>
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'spring' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Spring</div>
+                    </div>
+
+                    <!-- Summer -->
+                    <div @click="setTheme('summer')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-yellow-200 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'summer' ? 'border-indigo-600' : 'border-transparent'">
+                            <div class="absolute inset-0 text-4xl flex items-center justify-center">☀️</div>
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'summer' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Summer</div>
+                    </div>
+
+                    <!-- Autumn -->
+                    <div @click="setTheme('autumn')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-orange-200 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'autumn' ? 'border-indigo-600' : 'border-transparent'">
+                            <div class="absolute inset-0 text-4xl flex items-center justify-center">🍂</div>
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'autumn' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Autumn</div>
+                    </div>
+                    <!-- Ukraine -->
+                    <div @click="setTheme('ukraine')" class="cursor-pointer group">
+                        <div class="h-24 rounded-lg bg-gradient-to-b from-blue-500 to-yellow-400 border-4 transition relative overflow-hidden"
+                            :class="quiz.theme === 'ukraine' ? 'border-indigo-600' : 'border-transparent'">
+                        </div>
+                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
+                            :class="quiz.theme === 'ukraine' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                            Support Ukraine</div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    </div>
+
+    <script>
+        function quizEditor() {
+            return {
+                currentIndex: 0,
+                showSuccess: false,
+                showTypeSelector: false,
+                showTimeSelector: false,
+                showPointsSelector: false,
+                showThemeSelector: false,
+                quiz: {
+                    title: '',
+                    description: '',
+                    theme: 'standard',
+                    questions: [
+                        // Default first question
+                        {
+                            text: '',
+                            time_limit: 20,
+                            points: 1000,
+                            question_type: 'multiple_choice',
+                            image_url: '',
+                            options: [
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false }
+                            ]
+                        }
+                    ]
+                },
+
+                get currentQuestion() {
+                    return this.quiz.questions[this.currentIndex];
+                },
+
+                getTypeName(type) {
+                    const map = {
+                        'multiple_choice': 'Quiz',
+                        'true_false': 'Doğru / Yanlış',
+                        'typing': 'Kısa Cevap',
+                        'marked_answer': 'İşaretli Cevap',
+                        'poll': 'Oylama'
+                    };
+                    return map[type] || 'Bilinmiyor';
+                },
+
+                getTypeIcon(type) {
+                    const map = {
+                        'multiple_choice': '💠',
+                        'true_false': '⚖️',
+                        'typing': '⌨️',
+                        'marked_answer': '📍',
+                        'poll': '📊'
+                    };
+                    return map[type] || '❓';
+                },
+
+                addQuestion() {
+                    this.quiz.questions.push({
+                        text: '',
+                        time_limit: 20,
+                        points: 1000,
+                        question_type: 'multiple_choice',
+                        image_url: '',
+                        options: [
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false }
+                        ]
+                    });
+                    this.currentIndex = this.quiz.questions.length - 1;
+                },
+
+                formatTime(seconds) {
+                    if (seconds < 60) return seconds + ' saniye';
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = seconds % 60;
+                    if (remainingSeconds === 0) return minutes + ' dakika';
+                    return minutes + ' dakika ' + remainingSeconds + ' saniye';
+                },
+
+                formatPoints(points) {
+                    if (points == 1000) return 'Standart';
+                    if (points == 2000) return 'İki Katı';
+                    if (points == 0) return 'Puan Yok';
+                    return points;
+                },
+
+                removeQuestion(index) {
+                    if (this.quiz.questions.length > 1) {
+                        this.quiz.questions.splice(index, 1);
+                        if (this.currentIndex >= this.quiz.questions.length) {
+                            this.currentIndex = Math.max(0, this.quiz.questions.length - 1);
+                        }
+                    } else {
+                        alert("En az bir soru kalmalı!");
+                    }
+                },
+
+                toggleCorrect(optIndex) {
+                    if (this.currentQuestion.question_type === 'poll') return; // Poll has no correct answer
+
+                    const wasCorrect = this.currentQuestion.options[optIndex].is_correct;
+                    // Enforce single correct for now
+                    this.currentQuestion.options.forEach(o => o.is_correct = false);
+                    if (!wasCorrect) {
+                        this.currentQuestion.options[optIndex].is_correct = true;
+                    }
+                },
+
+                setTrueFalse(index) {
+                    this.currentQuestion.options.forEach(o => o.is_correct = false);
+                    this.currentQuestion.options[index].is_correct = true;
+                    this.currentQuestion.options[0].text = "True";
+                    this.currentQuestion.options[1].text = "False";
+                },
+
+                setPin(event) {
+                    // Calculate percentage coordinates
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+                    // Store as "x,y" string in first option
+                    // We round to 2 decimals
+                    this.currentQuestion.options[0].text = `${x.toFixed(2)},${y.toFixed(2)}`;
+                    this.currentQuestion.options[0].is_correct = true;
+                },
+
+                changeType(type) {
+                    // Reset or preset options based on type
+                    this.currentQuestion.question_type = type;
+                    this.showTypeSelector = false;
+
+                    if (type === 'true_false') {
+                        this.currentQuestion.options[0].text = "True";
+                        this.currentQuestion.options[1].text = "False";
+                        this.currentQuestion.options[2].text = "";
+                        this.currentQuestion.options[3].text = "";
+                    } else if (type === 'typing') {
+                        // Use option 0 as the correct answer storage
+                        this.currentQuestion.options.forEach(o => o.is_correct = false);
+                        this.currentQuestion.options[0].is_correct = true; // Implicitly correct
+                    } else if (type === 'marked_answer') {
+                        this.currentQuestion.options[0].text = ""; // clear pin
+                        this.currentQuestion.options[0].is_correct = true;
+                    }
+                },
+
+                setTheme(themeName) {
+                    this.quiz.theme = themeName;
+                    this.showThemeSelector = false;
+                },
+
+                getThemeName(theme) {
+                    const map = {
+                        'standard': 'Standard',
+                        'winter': 'Winter',
+                        'spring': 'Spring',
+                        'summer': 'Summer',
+                        'autumn': 'Autumn',
+                        'ukraine': 'Ukraine'
+                    };
+                    return map[theme] || 'Standard';
+                },
+
+                async uploadImage(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        // Optimistic visual update (optional, but good for UX)
+                        /* const reader = new FileReader();
+                        reader.onload = (e) => this.currentQuestion.image_url = e.target.result;
+                        reader.readAsDataURL(file); */
+
+                        // Upload to server
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.currentQuestion.image_url = data.url;
+                        } else {
+                            alert('Yükleme başarısız!');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Bir hata oluştu.');
+                    }
+                },
+
+                async saveQuiz() {
+                    if (!this.quiz.title) return alert('Lütfen yarışma başlığı girin.');
+
+                    // Validation
+                    for (let i = 0; i < this.quiz.questions.length; i++) {
+                        const q = this.quiz.questions[i];
+
+                        if (!q.text) {
+                            this.currentIndex = i;
+                            return alert((i + 1) + '. sorunun metnini girmediniz.');
+                        }
+
+                        if (q.question_type === 'poll') continue; // Polls don't need correct answer
+
+                        // For typing, check if text is entered
+                        if (q.question_type === 'typing') {
+                            if (!q.options[0].text) {
+                                this.currentIndex = i;
+                                return alert((i + 1) + '. soru için doğru cevabı yazmadınız.');
+                            }
+                        }
+                        // For selection types
+                        else {
+                            if (!q.options.some(o => o.is_correct) && q.question_type !== 'marked_answer') {
+                                this.currentIndex = i;
+                                return alert((i + 1) + '. soruda doğru cevabı seçmediniz!');
+                            }
+                            if (q.question_type === 'marked_answer') {
+                                if (!q.image_url) {
+                                    this.currentIndex = i;
+                                    return alert((i + 1) + '. soru için (İşaretli Cevap) bir görsel eklemelisiniz.');
+                                }
+                                if (!q.options[0].text) {
+                                    this.currentIndex = i;
+                                    return alert((i + 1) + '. soru için görsel üzerine tıklayarak doğru yeri işaretleyin.');
+                                }
+                            }
+                        }
+                    }
+
+                    try {
+                        const response = await fetch('/api/quizzes/', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.quiz)
+                        });
+
+                        if (response.ok) {
+                            this.showSuccess = true;
+                        } else {
+                            alert('Bir hata oluştu.');
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert('Sunucuya bağlanılamadı.');
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

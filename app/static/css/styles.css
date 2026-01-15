@@ -1,0 +1,5 @@
+/* Custom styles to supplement Tailwind */
+body {
+    background-image: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+    min-height: 100vh;
+}

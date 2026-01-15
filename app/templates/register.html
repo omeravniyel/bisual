@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiSual - Kayıt Ol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-md p-8 bg-gray-800 rounded-2xl shadow-2xl border border-gray-700">
+        <div class="text-center mb-8">
+            <h1
+                class="text-3xl font-black mb-2 bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
+                BiSual</h1>
+            <p class="text-gray-400">Yeni Öğretmen Kaydı</p>
+        </div>
+
+        {% if error %}
+        <div class="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg mb-6 text-sm">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if success %}
+        <div class="bg-green-500/10 border border-green-500/50 text-green-500 p-3 rounded-lg mb-6 text-sm">
+            {{ success }}
+            <br>
+            <a href="/login" class="underline font-bold mt-2 inline-block">Giriş Yap</a>
+        </div>
+        {% endif %}
+
+        <form action="/register" method="POST" class="space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-gray-400 mb-2">Kullanıcı Adı</label>
+                <input type="text" name="username" required
+                    class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-gray-400 mb-2">Şifre</label>
+                <input type="password" name="password" required
+                    class="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:border-purple-500 outline-none transition">
+            </div>
+
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-4 rounded-xl shadow-lg transform active:scale-95 transition">
+                Kayıt Ol
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm text-gray-500">
+            Zaten hesabın var mı? <a href="/login" class="text-purple-400 hover:text-purple-300 font-bold">Giriş Yap</a>
+        </div>
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiSual - Sunucu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .pin-text {
+            font-size: 6rem;
+            letter-spacing: 0.5rem;
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Custom Animations */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes spin-slow {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin-slow {
+            animation: spin-slow 5s linear infinite;
+        }
+    </style>
+</head>
+
+<body
+    class="h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-white transition-colors duration-300 overflow-hidden"
+    x-data="hostGame('{{ host_ip }}', '{{ port }}')" x-init="initTheme()" x-cloak>
+
+    <!-- Top Bar -->
+    <div
+        class="bg-white/80 dark:bg-slate-800/50 p-4 flex justify-between items-center backdrop-blur-md sticky top-0 z-10 border-b border-slate-200 dark:border-slate-700 transition-all duration-300">
+        <div
+            class="text-2xl font-black bg-gradient-to-r from-pink-500 to-purple-600 text-transparent bg-clip-text hover:scale-110 transition-transform cursor-default">
+            BiSual</div>
+
+        <div class="flex items-center gap-4">
+            <!-- Mode Toggle -->
+            <button @click="toggleTheme()"
+                class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:scale-105 transition active:rotate-90">
+                <span x-text="dark ? '☀️' : '🌙'"></span>
+            </button>
+
+            <div class="text-xl font-bold font-mono text-slate-600 dark:text-slate-300 transition-all"
+                x-show="state === 'LOBBY'" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 -translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
+                PIN: <span x-text="pin" class="text-indigo-600 dark:text-indigo-400"></span>
+            </div>
+
+            <div class="text-xl font-bold" x-show="state === 'QUESTION'"
+                x-text="'Soru ' + (currentQuestionIndex + 1) + '/' + totalQuestions"></div>
+
+            <div class="text-sm font-bold bg-slate-200 dark:bg-slate-700 px-4 py-2 rounded-full text-slate-700 dark:text-white transition-colors"
+                x-text="players.length + ' Oyuncu'"></div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="flex-1 flex flex-col items-center justify-center relative overflow-hidden p-6 text-center">
+
+        <!-- LOBBY STATE -->
+        <div x-show="state === 'LOBBY'" class="w-full h-full flex flex-col items-center justify-center"
+            x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 scale-90"
+            x-transition:enter-end="opacity-100 scale-100">
+            <div class="mb-12 animate-float">
+                <p class="text-2xl text-slate-500 dark:text-slate-400 mb-2 font-medium">Katılmak için:</p>
+                <div class="font-black pin-text text-indigo-600 dark:text-white drop-shadow-sm dark:drop-shadow-[0_0_15px_rgba(99,102,241,0.5)] transition-all hover:scale-110 duration-500 cursor-default"
+                    x-text="pin || '.....'"></div>
+                <p class="mt-4 text-3xl font-bold text-slate-700 dark:text-slate-300">bisual.app/play</p>
+
+                <!-- QR & URL Info -->
+                <div class="mt-8 flex flex-col items-center gap-4 animate-float" style="animation-delay: 1s;">
+                    <div class="bg-white p-3 rounded-2xl shadow-xl transform transition hover:scale-105 duration-300">
+                        <div id="qrcode"></div>
+                    </div>
+                    <p class="text-sm font-bold text-slate-400">Okut ve Katıl!</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 max-w-6xl mb-12">
+                <template x-for="player in players" :key="player">
+                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 px-6 py-3 rounded-full text-xl font-bold shadow-lg text-slate-800 dark:text-white transition-all hover:-translate-y-2 hover:shadow-xl cursor-default animate-bounce"
+                        x-transition:enter="transition ease-back-out duration-300"
+                        x-transition:enter-start="opacity-0 scale-0" x-transition:enter-end="opacity-100 scale-100">
+                        <span x-text="player"></span>
+                    </div>
+                </template>
+                <div x-show="players.length === 0" class="text-slate-400 animate-pulse text-xl">Oyuncular bekleniyor...
+                </div>
+            </div>
+
+            <button @click="startGame()" x-show="players.length > 0"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-10" x-transition:enter-end="opacity-100 translate-y-0"
+                class="bg-indigo-600 hover:bg-indigo-500 text-white text-3xl font-black py-4 px-20 rounded-2xl shadow-xl transition transform hover:scale-105 active:scale-95 flex items-center gap-3 relative overflow-hidden group">
+                <span class="relative z-10 flex items-center gap-3">Başlat 🚀</span>
+                <div
+                    class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                </div>
+            </button>
+        </div>
+
+        <!-- QUESTION STATE -->
+        <div x-show="state === 'QUESTION'" class="w-full h-full flex flex-col"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 blur-sm"
+            x-transition:enter-end="opacity-100 blur-0">
+            <!-- Question & Timer -->
+            <div class="flex-1 flex flex-col items-center justify-center mb-8">
+                <div class="w-24 h-24 rounded-full border-8 flex items-center justify-center text-4xl font-bold mb-6 transition-all duration-300 shadow-xl scale-100"
+                    :class="{
+                        'border-red-500 text-red-500 bg-red-100 dark:bg-red-900/20 animate-pulse scale-110': timer <= 5,
+                        'border-slate-300 dark:border-slate-600 text-slate-700 dark:text-white bg-white dark:bg-slate-800': timer > 5
+                    }" x-text="timer"></div>
+
+                <h2 class="text-4xl md:text-5xl font-black leading-tight text-slate-800 dark:text-white drop-shadow-sm max-w-5xl transition-all"
+                    x-text="currentQuestion.text"></h2>
+
+                <!-- Question Image -->
+                <img x-show="currentQuestion.image" :src="currentQuestion.image"
+                    x-transition:enter="transition ease-out duration-500 delay-100"
+                    x-transition:enter-start="opacity-0 scale-90 translate-y-4"
+                    x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                    class="mt-6 max-h-[300px] rounded-xl shadow-2xl border-4 border-white dark:border-slate-700 object-cover hover:scale-[1.02] transition-transform">
+            </div>
+
+            <!-- Options Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 h-auto w-full max-w-6xl mx-auto mb-8">
+                <template x-for="(opt, index) in currentQuestion.options || []" :key="index">
+                    <div class="rounded-2xl flex items-center p-6 text-2xl font-bold shadow-md transition-all duration-300 transform border-2"
+                        :class="{
+                             'bg-red-100 border-red-500 text-red-700': index === 0 && !showAnswer,
+                             'bg-blue-100 border-blue-600 text-blue-700': index === 1 && !showAnswer,
+                             'bg-yellow-100 border-yellow-500 text-yellow-800': index === 2 && !showAnswer,
+                             'bg-green-100 border-green-600 text-green-700': index === 3 && !showAnswer,
+                             
+                             'opacity-40 grayscale scale-95': showAnswer && !opt.is_correct,
+                             'bg-green-500 border-green-600 text-white scale-105 shadow-2xl ring-4 ring-green-300 dark:ring-green-900/50': showAnswer && opt.is_correct
+                         }">
+                        <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-black/10 mr-4">
+                            <span x-text="['▲','◆','●','■'][index]" class="text-lg"></span>
+                        </div>
+                        <span x-text="opt.text" class="text-left flex-1"></span>
+                        <span x-show="showAnswer && opt.is_correct"
+                            x-transition:enter="transition ease-out duration-300 delay-100"
+                            x-transition:enter-start="opacity-0 scale-0 rotate-180"
+                            x-transition:enter-end="opacity-100 scale-100 rotate-0"
+                            class="ml-auto text-4xl bg-white text-green-600 rounded-full p-1 shadow-lg">✓</span>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- LEADERBOARD STATE -->
+        <div x-show="state === 'LEADERBOARD'" class="w-full max-w-4xl mx-auto"
+            x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-x-full"
+            x-transition:enter-end="opacity-100 translate-x-0">
+            <h2 class="text-5xl font-black mb-10 text-slate-800 dark:text-white tracking-tight animate-bounce">🏆 Lider
+                Tablosu</h2>
+            <div class="space-y-4">
+                <template x-for="(entry, index) in leaderboard" :key="index">
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl flex justify-between items-center text-2xl border-l-8 shadow-sm transition-all hover:scale-[1.02]"
+                        x-transition:enter="transition ease-out duration-500"
+                        x-transition:enter-start="opacity-0 translate-x-10"
+                        x-transition:enter-end="opacity-100 translate-x-0" :style="`transition-delay: ${index * 100}ms`"
+                        :class="{
+                             'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/10 scale-105 shadow-xl z-10': index === 0,
+                             'border-slate-400 bg-slate-50 dark:bg-slate-800': index === 1,
+                             'border-orange-700 bg-orange-50 dark:bg-orange-900/10': index === 2,
+                             'border-transparent opacity-90': index > 2
+                         }">
+                        <div class="flex items-center gap-6">
+                            <span class="font-black text-slate-400 dark:text-slate-600 text-3xl w-12"
+                                x-text="'#' + (index + 1)"></span>
+                            <span x-text="entry.nickname" class="font-bold text-slate-800 dark:text-white"></span>
+                            <span x-show="index===0" class="text-2xl animate-spin-slow">👑</span>
+                        </div>
+                        <span class="font-black text-indigo-600 dark:text-indigo-400" x-text="entry.score"></span>
+                    </div>
+                </template>
+
+                <div x-show="leaderboard.length === 0" class="text-slate-400 text-xl">Henüz puan durumu oluşmadı.</div>
+            </div>
+
+            <button @click="nextQuestion()" x-transition:enter="transition ease-out duration-500 delay-500"
+                x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0"
+                class="mt-12 bg-indigo-600 hover:bg-indigo-500 text-white text-xl font-bold py-4 px-12 rounded-2xl shadow-xl transition transform hover:scale-105 active:scale-95">
+                Sonraki Soru →
+            </button>
+        </div>
+
+        <!-- END STATE -->
+        <div x-show="state === 'END'" class="text-center" x-transition:enter="transition ease-out duration-700"
+            x-transition:enter-start="opacity-0 scale-50" x-transition:enter-end="opacity-100 scale-100">
+            <div class="text-8xl mb-4 animate-bounce">🎉</div>
+            <h1
+                class="text-6xl font-black mb-8 text-slate-800 dark:text-white bg-gradient-to-r from-indigo-500 to-purple-500 text-transparent bg-clip-text">
+                Oyun Bitti!</h1>
+            <a href="/host"
+                class="text-indigo-600 dark:text-indigo-400 text-2xl font-bold hover:underline bg-indigo-50 dark:bg-indigo-900/20 px-8 py-4 rounded-xl shadow-lg hover:shadow-2xl transition">
+                Ana Sayfaya Dön
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Audio Elements -->
+    <div class="fixed bottom-4 right-4 z-50">
+        <button @click="toggleMute()"
+            class="bg-white dark:bg-slate-800 p-4 rounded-full shadow-xl border border-slate-200 dark:border-slate-700 hover:scale-110 transition text-2xl group">
+            <span x-text="muted ? '🔇' : '🔊'" class="group-hover:scale-110 transition-transform block"></span>
+        </button>
+    </div>
+
+    <script>
+        function hostGame(hostIp, port) {
+            return {
+                hostIp: hostIp || window.location.hostname,
+                port: port || window.location.port,
+                ws: null,
+                pin: null,
+                players: [],
+                state: 'LOBBY',
+                dark: false,
+
+                // Theme Logic
+                initTheme() {
+                    this.dark = localStorage.getItem('theme') === 'dark';
+                    if (this.dark) document.documentElement.classList.add('dark');
+                    else document.documentElement.classList.remove('dark');
+
+                    // Helper for body class binding if needed, but we rely on tailwind 'dark' class on HTML
+                    // interact requirement check
+                    document.addEventListener('click', () => {
+                        if (this.state === 'LOBBY' && !this.muted && this.sounds.lobby.paused) {
+                            this.playMusic('lobby');
+                        }
+                    }, { once: true });
+                },
+
+                toggleTheme() {
+                    this.dark = !this.dark;
+                    localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+                    if (this.dark) document.documentElement.classList.add('dark');
+                    else document.documentElement.classList.remove('dark');
+                },
+
+                // Audio State
+                muted: false,
+                sounds: {
+                    lobby: new Audio('/static/audio/lobby.mp3'),
+                    question: new Audio('/static/audio/question.mp3'),
+                    answer: new Audio('/static/audio/answer.mp3'), // Time's up
+                    end: new Audio('/static/audio/end.mp3')
+                },
+
+                // Game Data
+                currentQuestion: {},
+                currentQuestionIndex: 0,
+                totalQuestions: 0,
+                timer: 0,
+                timerInterval: null,
+                showAnswer: false,
+                leaderboard: [],
+
+                // Confetti Logic
+                fireConfetti(duration = 2000) {
+                    var end = Date.now() + duration;
+
+                    (function frame() {
+                        confetti({
+                            particleCount: 5, // smaller bursts
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 }
+                        });
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 }
+                        });
+
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
+                        }
+                    }());
+                },
+
+                fireWinnerConfetti() {
+                    confetti({
+                        particleCount: 200,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                },
+
+                init() {
+                    // Main Init
+                    const quizId = window.location.pathname.split('/').pop();
+                    this.connect(quizId);
+
+                    // Setup Audio Loops
+                    this.sounds.lobby.loop = true;
+                    this.sounds.question.loop = true;
+                },
+
+                toggleMute() {
+                    this.muted = !this.muted;
+                    Object.values(this.sounds).forEach(s => s.muted = this.muted);
+                    if (!this.muted && this.state === 'LOBBY') this.playMusic('lobby');
+                },
+
+                playMusic(type) {
+                    // Stop others
+                    Object.values(this.sounds).forEach(s => {
+                        s.pause();
+                        s.currentTime = 0;
+                    });
+
+                    if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
+                },
+
+                simplePlay(type) {
+                    if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
+                },
+
+                connect(quizId) {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/host/${quizId}`;
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
+
+                    this.ws.onerror = (e) => {
+                        console.error("WebSocket Error", e);
+                        alert("Bağlantı hatası! Lütfen sayfayı yenileyin.");
+                    };
+                },
+
+                handleMessage(data) {
+                    console.log("Host Msg:", data);
+
+                    if (data.type === 'GAME_CREATED') {
+                        this.pin = data.pin;
+                        this.playMusic('lobby');
+
+                        // Generate QR Code
+                        // We use the Python-injected 'host_ip' and 'port' from template vars
+                        // Ideally we grab them from a global JS var or meta tag, 
+                        // but here we can rely on standard window.location if we trust the browser context, 
+                        // OR better: use the injected values if available.
+                        // Let's use window.location.host since the browser "knows" where it is connected.
+                        // If browser is on localhost, QR will be localhost (bad for phones).
+                        // So we MUST use the server-provided IP.
+
+                        setTimeout(() => {
+                            const joinUrl = `http://${this.hostIp}:${this.port}/?pin=${this.pin}`;
+                            new QRCode(document.getElementById("qrcode"), {
+                                text: joinUrl,
+                                width: 128,
+                                height: 128,
+                                colorDark: "#4f46e5",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                        }, 100);
+                    }
+                    else if (data.type === 'PLAYER_JOINED') {
+                        this.players.push(data.nickname);
+                    }
+                    else if (data.type === 'NEW_QUESTION') {
+                        this.state = 'QUESTION';
+                        this.currentQuestion = data.question;
+                        this.currentQuestionIndex = data.index;
+                        this.totalQuestions = data.total;
+                        this.showAnswer = false;
+
+                        this.playMusic('question');
+                        this.startTimer(data.question.time);
+                    }
+                    else if (data.type === 'LEADERBOARD') {
+                        this.state = 'LEADERBOARD';
+                        this.leaderboard = data.data;
+                        // Fire confetti if there is a 'winner' (top of list)
+                        if (this.leaderboard.length > 0) {
+                            this.fireWinnerConfetti();
+                        }
+                    }
+                    else if (data.type === 'GAME_OVER') {
+                        this.state = 'END';
+                        this.playMusic('end');
+                        this.fireConfetti(5000); // 5 seconds of confetti!
+                    }
+                },
+
+                startTimer(seconds) {
+                    if (this.timerInterval) clearInterval(this.timerInterval);
+                    this.timer = seconds;
+
+                    this.timerInterval = setInterval(() => {
+                        this.timer--;
+                        if (this.timer <= 0) {
+                            clearInterval(this.timerInterval);
+                            this.showAnswer = true;
+                            this.simplePlay('answer'); // Play time's up sound
+                            // Auto show leaderboard after 5 seconds of showing answer
+                            setTimeout(() => {
+                                this.ws.send(JSON.stringify({ type: 'SHOW_LEADERBOARD' }));
+                            }, 5000);
+                        }
+                    }, 1000);
+                },
+
+                startGame() {
+                    this.ws.send(JSON.stringify({ type: 'START_GAME' }));
+                },
+
+                nextQuestion() {
+                    this.ws.send(JSON.stringify({ type: 'NEXT_QUESTION' }));
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

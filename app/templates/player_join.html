@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BiSual - Oyna</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #f2f2f2;
+            color: #1e1e1e;
+            user-select: none;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .mesh-bg {
+            background-color: hsla(270, 50%, 40%, 1);
+            background-image:
+                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        }
+
+        .btn-shadow {
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-shadow:active {
+            box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
+            transform: translateY(4px);
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col mesh-bg text-white" x-data="playerGame()" x-cloak>
+
+    <!-- HEADER (Pin & Score) -->
+    <div class="h-14 bg-black/20 backdrop-blur flex justify-between items-center px-4 shrink-0 z-10"
+        x-show="state !== 'LOGIN'">
+        <div class="font-bold text-sm opacity-70">PIN: <span x-text="pin"></span></div>
+        <div class="bg-white/10 px-3 py-1.5 rounded-full font-bold text-sm" x-text="nickname"></div>
+        <div class="font-bold text-sm opacity-70" x-show="score > 0" x-text="score"></div>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div x-show="state === 'LOGIN'" class="flex-1 flex flex-col items-center justify-center p-6" x-transition>
+        <div class="w-full max-w-sm bg-white text-black p-8 rounded-2xl shadow-2xl text-center">
+            <div class="text-4xl mb-4">⚡</div>
+            <h1 class="text-3xl font-black mb-6 tracking-tight">BiSual'a Katıl</h1>
+
+            <div class="space-y-4">
+                <input type="tel" x-model="pin"
+                    class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center text-2xl font-bold tracking-widest outline-none focus:border-black transition placeholder-gray-400 text-black"
+                    placeholder="Game PIN" maxlength="6">
+
+                <input type="text" x-model="nickname"
+                    class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center text-xl font-bold outline-none focus:border-black transition placeholder-gray-400 text-black"
+                    placeholder="Adınız" maxlength="12">
+
+                <button @click="join()"
+                    class="w-full bg-black text-white font-black py-4 rounded-xl text-lg hover:bg-gray-800 transition transform active:scale-95 btn-shadow border-none">
+                    Oyuna Gir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div x-show="state === 'WAITING'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
+        x-transition>
+        <div class="animate-bounce text-6xl mb-6">⏳</div>
+        <h2 class="text-3xl font-bold mb-2">Hazır Ol!</h2>
+        <p class="text-white/60 text-lg">Yarışma ekranına bak...</p>
+
+        <div class="mt-12 bg-white/10 backdrop-blur p-4 rounded-xl">
+            <div class="text-sm opacity-60">Senin Puanın</div>
+            <div class="text-4xl font-black" x-text="score"></div>
+        </div>
+    </div>
+
+    <!-- ANSWERING SCREEN -->
+    <div x-show="state === 'ANSWERING'" class="flex-1 flex flex-col relative overflow-hidden" x-transition>
+
+        <!-- Timer Bar -->
+        <div class="w-full h-2 bg-white/20">
+            <div class="h-full bg-yellow-400 transition-all duration-[1000ms] linear"
+                :style="'width: ' + timerPercent + '%'"></div>
+        </div>
+
+        <!-- Question Text (Optional on mobile, but helpful) -->
+        <div class="p-4 bg-black/10 text-center font-bold text-shadow" x-text="currentQuestion.text"></div>
+
+        <!-- DYNAMIC CONTENT BASED ON TYPE -->
+        <div class="flex-1 p-4 flex flex-col justify-center">
+
+            <!-- 1. MULTIPLE CHOICE / POLL -->
+            <div x-show="['multiple_choice', 'poll'].includes(currentQuestion.q_type)"
+                class="h-full grid grid-cols-2 gap-4">
+                <button @click="submitAnswer(0)"
+                    class="bg-red-500 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
+                    <span class="text-6xl text-white drop-shadow-md">▲</span>
+                </button>
+                <button @click="submitAnswer(1)"
+                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
+                    <span class="text-6xl text-white drop-shadow-md">◆</span>
+                </button>
+                <button @click="submitAnswer(2)"
+                    class="bg-yellow-500 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
+                    <span class="text-6xl text-white drop-shadow-md">●</span>
+                </button>
+                <button @click="submitAnswer(3)"
+                    class="bg-green-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
+                    <span class="text-6xl text-white drop-shadow-md">■</span>
+                </button>
+            </div>
+
+            <!-- 2. TRUE / FALSE -->
+            <div x-show="currentQuestion.q_type === 'true_false'" class="h-full grid grid-cols-1 gap-4">
+                <button @click="submitAnswer(0)"
+                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center gap-4">
+                    <span class="text-4xl text-white drop-shadow-md">◆</span>
+                    <span class="text-3xl font-black">DOĞRU</span>
+                </button>
+                <button @click="submitAnswer(1)"
+                    class="bg-red-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center gap-4">
+                    <span class="text-4xl text-white drop-shadow-md">▲</span>
+                    <span class="text-3xl font-black">YANLIŞ</span>
+                </button>
+            </div>
+
+            <!-- 3. TYPING -->
+            <div x-show="currentQuestion.q_type === 'typing'" class="flex flex-col items-center justify-center gap-6">
+                <h3 class="font-bold text-xl opacity-80">Doğru cevabı yazın</h3>
+                <input type="text" x-model="textAnswer"
+                    class="w-full p-4 rounded-xl text-black text-center text-2xl font-bold uppercase shadow-lg outline-none border-4 focus:border-indigo-500 transition"
+                    placeholder="Cevap...">
+                <button @click="submitAnswer(textAnswer)"
+                    class="w-full bg-white text-indigo-900 font-black py-4 rounded-xl text-xl btn-shadow active:scale-95 transition">
+                    GÖNDER
+                </button>
+            </div>
+
+            <!-- 4. MARKED ANSWER (PIN DROP) -->
+            <div x-show="currentQuestion.q_type === 'marked_answer'"
+                class="flex-1 flex flex-col items-center justify-center gap-4 w-full h-full">
+                <div
+                    class="relative w-full h-full max-h-[60vh] flex items-center justify-center bg-black/20 rounded-lg overflow-hidden border-2 border-white/20">
+                    <!-- Image needs to be clickable. We need to handle aspect ratio properly on mobile. 
+                          Ideally fit containment. Coordinates are % based so scaling is fine. -->
+                    <div class="relative w-full h-full" x-show="currentQuestion.image" @click="setPin($event)">
+                        <img :src="currentQuestion.image" class="w-full h-full object-contain">
+                        <!-- Pin -->
+                        <div x-show="pinCoords"
+                            class="absolute text-4xl -ml-4 -mt-8 drop-shadow-lg pointer-events-none transition-all"
+                            :style="'left: ' + pinCoords.x + '%; top: ' + pinCoords.y + '%'">
+                            📍
+                        </div>
+                    </div>
+                </div>
+                <button x-show="pinCoords" @click="submitAnswer(pinCoords.x + ',' + pinCoords.y)"
+                    class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl text-xl btn-shadow active:scale-95 transition animate-punch">
+                    GÖNDER
+                </button>
+                <div x-show="!pinCoords" class="text-sm opacity-60">Görsele dokunarak işaretle!</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- FEEDBACK SCREEN -->
+    <div x-show="state === 'FEEDBACK'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
+        :class="lastResult === 'CORRECT' ? 'bg-green-600' : 'bg-red-600'" x-transition>
+
+        <div class="text-9xl mb-4 filter drop-shadow-xl" x-text="lastResult === 'CORRECT' ? '🎉' : '😓'"></div>
+
+        <h2 class="text-5xl font-black mb-2 drop-shadow-md" x-text="lastResult === 'CORRECT' ? 'DOĞRU!' : 'YANLIŞ'">
+        </h2>
+
+        <div x-show="lastResult === 'CORRECT'" class="mt-4 bg-black/20 px-8 py-3 rounded-full backdrop-blur-sm">
+            <span class="text-3xl font-bold">+</span>
+            <span class="text-3xl font-bold" x-text="lastPoints"></span>
+        </div>
+
+        <div class="mt-12 text-center" x-show="lastResult === 'WRONG'">
+            <div class="text-white/70 font-medium">Pes etmek yok!</div>
+        </div>
+
+        <div class="fixed bottom-10 flex flex-col items-center">
+            <div class="text-sm uppercase tracking-widest opacity-60 mb-1">Toplam Puan</div>
+            <div class="text-5xl font-black" x-text="score"></div>
+        </div>
+    </div>
+
+    <script>
+        function playerGame() {
+            return {
+                state: 'LOGIN', // LOGIN, WAITING, ANSWERING, FEEDBACK
+                pin: new URLSearchParams(window.location.search).get('pin') || '',
+                nickname: '',
+                ws: null,
+                score: 0,
+                lastResult: null,
+                lastPoints: 0,
+                questionStartTime: 0,
+                timerPercent: 100,
+                timerInterval: null,
+
+                // Question Data
+                currentQuestion: {
+                    text: '',
+                    q_type: 'multiple_choice',
+                    image: '',
+                    time: 20
+                },
+                textAnswer: '',
+                pinCoords: null,
+                theme: 'standard',
+
+                join() {
+                    if (this.pin.length < 1 || this.nickname.length < 1) return alert("Bilgileri doldurun.");
+
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/player/${this.pin}/${this.nickname}`;
+
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.state = 'WAITING';
+                    };
+
+                    this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
+
+                    this.ws.onclose = () => {
+                        console.log("Disconnected");
+                    };
+                },
+
+                handleMessage(data) {
+                    console.log("Msg:", data);
+
+                    if (data.type === 'ERROR') {
+                        alert(data.message);
+                        this.ws.close();
+                    }
+                    else if (data.type === 'GAME_JOINED') {
+                        this.state = 'WAITING';
+                        this.theme = data.theme || 'standard';
+                    }
+                    else if (data.type === 'NEW_QUESTION') {
+                        this.state = 'ANSWERING';
+                        this.currentQuestion = data;
+                        this.questionStartTime = Date.now();
+
+                        // Reset Inputs
+                        this.textAnswer = '';
+                        this.pinCoords = null;
+
+                        // Timer logic
+                        this.startTimer(data.time);
+                    }
+                    else if (data.type === 'FEEDBACK') {
+                        this.state = 'FEEDBACK';
+                        this.lastResult = data.result;
+                        this.score = data.score;
+                        if (data.points_added) this.lastPoints = data.points_added;
+
+                        setTimeout(() => {
+                            if (this.state === 'FEEDBACK') this.state = 'WAITING';
+                        }, 5000);
+                    }
+                    else if (data.type === 'GAME_OVER') {
+                        alert("Oyun Bitti! Skorun: " + this.score);
+                        window.location.reload();
+                    }
+                },
+
+                submitAnswer(answer) {
+                    if (this.state !== 'ANSWERING') return;
+
+                    const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
+                    const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);
+
+                    this.ws.send(JSON.stringify({
+                        type: 'SUBMIT_ANSWER',
+                        answer: answer,
+                        time_left: estTimeLeft
+                    }));
+
+                    this.state = 'WAITING';
+                },
+
+                setPin(event) {
+                    const rect = event.target.getBoundingClientRect(); // Get image rect
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
+                },
+
+                startTimer(seconds) {
+                    clearInterval(this.timerInterval);
+                    this.timerPercent = 100;
+                    const step = 100 / (seconds * 10); // execute every 100ms
+
+                    this.timerInterval = setInterval(() => {
+                        this.timerPercent -= step;
+                        if (this.timerPercent <= 0) {
+                            clearInterval(this.timerInterval);
+                        }
+                    }, 100);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+<style>
+    body {
+        background-color: #0f172a;
+        color: white;
+        user-select: none;
+    }
+</style>
+</head>
+
+<body class="h-screen flex flex-col" x-data="playerGame()">
+
+    <!-- LOGIN SCREEN -->
+    <div x-show="state === 'LOGIN'" class="h-full flex flex-col items-center justify-center p-6">
+        <div class="w-full max-w-md bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
+            <h1
+                class="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-pink-500 to-purple-500 text-transparent bg-clip-text">
+                BiSual</h1>
+            <div class="space-y-4">
+                <input type="tel" x-model="pin"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-2xl tracking-widest text-white outline-none"
+                    placeholder="PIN" maxlength="6">
+                <input type="text" x-model="nickname"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg p-4 text-center text-xl text-white outline-none"
+                    placeholder="Adınız" maxlength="12">
+                <button @click="join()"
+                    class="w-full bg-pink-600 hover:bg-pink-500 text-white font-bold py-4 rounded-xl text-lg transition active:scale-95">Katıl
+                    🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WAITING SCREEN -->
+    <div x-show="state === 'WAITING'" class="h-full flex flex-col items-center justify-center p-6 bg-slate-900">
+        <div class="text-xl mb-4 text-slate-400">Başarıyla Katıldın!</div>
+        <div class="text-4xl font-bold text-white mb-8" x-text="nickname"></div>
+        <div class="animate-pulse text-indigo-400">Yarışma Başlıyor...</div>
+        <div class="mt-8 font-bold text-2xl" x-text="score > 0 ? 'Puan: ' + score : ''"></div>
+    </div>
+
+    <!-- ANSWER BUTTONS -->
+    <div x-show="state === 'ANSWERING'" class="h-full grid grid-cols-2 grid-rows-2 gap-4 p-4">
+        <button @click="submitAnswer(0)"
+            class="bg-red-500 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center text-6xl">▲</button>
+        <button @click="submitAnswer(1)"
+            class="bg-blue-600 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center text-6xl">◆</button>
+        <button @click="submitAnswer(2)"
+            class="bg-yellow-500 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center text-6xl text-black">●</button>
+        <button @click="submitAnswer(3)"
+            class="bg-green-600 rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center text-6xl">■</button>
+    </div>
+
+    <!-- FEEDBACK SCREEN -->
+    <div x-show="state === 'FEEDBACK'" class="h-full flex flex-col items-center justify-center p-6"
+        :class="lastResult === 'CORRECT' ? 'bg-green-600' : 'bg-red-600'">
+
+        <div class="text-8xl mb-6" x-text="lastResult === 'CORRECT' ? '✓' : '✗'"></div>
+        <h2 class="text-4xl font-bold mb-4" x-text="lastResult === 'CORRECT' ? 'DOĞRU!' : 'YANLIŞ'"></h2>
+
+        <div x-show="lastResult === 'CORRECT'" class="text-2xl font-bold bg-white/20 px-6 py-2 rounded-full mb-8">
+            +<span x-text="lastPoints"></span> puan
+        </div>
+
+        <div class="text-xl opacity-80">Toplam Puanın</div>
+        <div class="text-4xl font-black mt-2" x-text="score"></div>
+    </div>
+
+    <script>
+        function playerGame() {
+            return {
+                state: 'LOGIN', // LOGIN, WAITING, ANSWERING, FEEDBACK
+                pin: '',
+                nickname: '',
+                ws: null,
+                score: 0,
+                lastResult: null, // CORRECT, WRONG
+                lastPoints: 0,
+                questionStartTime: 0,
+                gameActive: false,
+
+                join() {
+                    if (this.pin.length < 1 || this.nickname.length < 1) return alert("Bilgileri doldurun.");
+
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/player/${this.pin}/${this.nickname}`;
+
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onopen = () => {
+                        this.state = 'WAITING';
+                    };
+
+                    this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
+
+                    this.ws.onclose = () => {
+                        alert("Bağlantı koptu.");
+                        this.state = 'LOGIN';
+                    };
+                },
+
+                handleMessage(data) {
+                    console.log("Player Msg:", data);
+
+                    if (data.type === 'ERROR') {
+                        alert(data.message);
+                        this.ws.close();
+                    }
+                    else if (data.type === 'NEW_QUESTION') {
+                        this.state = 'ANSWERING';
+                        this.questionStartTime = Date.now();
+                        this.gameActive = true;
+                    }
+                    else if (data.type === 'FEEDBACK') {
+                        this.state = 'FEEDBACK';
+                        this.lastResult = data.result;
+                        this.score = data.score;
+                        if (data.points_added) this.lastPoints = data.points_added;
+
+                        // Wait a bit then go to waiting (Host controls next step, but client should be ready)
+                        setTimeout(() => {
+                            if (this.state === 'FEEDBACK') this.state = 'WAITING';
+                        }, 5000);
+                    }
+                    else if (data.type === 'GAME_OVER') {
+                        this.state = 'WAITING'; // Or a dedicated END screen
+                        alert("Oyun Bitti! Skorun: " + this.score);
+                    }
+                },
+
+                submitAnswer(index) {
+                    if (!this.gameActive) return;
+
+                    // Simple logic: send time_left approx
+                    const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
+                    // Ideally we know the question total time, but for now we send elapsed or just arbitrary "fast" metric
+                    // Let's send 20 - elapsed (assuming 20s default) or just update server to handle time diff.
+                    // Better: Send answer immediately. Server logic uses server timer or client sends timestamp.
+                    // For implementation plan logic: handle_answer expects time_left.
+                    // We'll estimate "20" here or logic needs update. Let's send 20 - elapsed.
+                    const estTimeLeft = Math.max(0, 20 - timeElapsed);
+
+                    this.ws.send(JSON.stringify({
+                        type: 'SUBMIT_ANSWER',
+                        answer: index,
+                        time_left: estTimeLeft
+                    }));
+
+                    this.state = 'WAITING'; // Show waiting until feedback comes
+                    this.gameActive = false;
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

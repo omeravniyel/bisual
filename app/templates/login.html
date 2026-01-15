@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiSual - Öğretmen Girişi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-900 text-white h-screen flex items-center justify-center">
+    <div class="w-full max-w-sm bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl">
+        <h1
+            class="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-indigo-400 to-blue-500 text-transparent bg-clip-text">
+            Öğretmen Girişi</h1>
+
+        {% if error %}
+        <div class="bg-red-500/20 border border-red-500 text-red-200 p-3 rounded-lg mb-6 text-sm text-center">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/login" method="post" class="space-y-6">
+            <div>
+                <label class="block text-slate-400 mb-2 text-sm">Kullanıcı Adı</label>
+                <input type="text" name="username"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-indigo-500 outline-none transition"
+                    required>
+            </div>
+
+            <div>
+                <label class="block text-slate-400 mb-2 text-sm">Şifre</label>
+                <input type="password" name="password"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:border-indigo-500 outline-none transition"
+                    required>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-indigo-500/20">
+                Giriş Yap
+            </button>
+        </form>
+
+        <div class="mt-6 text-center text-sm space-y-4">
+            <div class="text-slate-400">
+                Hesabın yok mu? <a href="/register"
+                    class="text-indigo-400 hover:text-indigo-300 font-bold transition">Başvuru Yap</a>
+            </div>
+            <div>
+                <a href="/" class="text-slate-500 hover:text-white transition">← Ana Sayfaya Dön</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
