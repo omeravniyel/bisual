@@ -170,3 +170,84 @@ async def edit_user(
         db.commit()
     
     return RedirectResponse(url="/super-admin", status_code=status.HTTP_303_SEE_OTHER)
+
+# --- PASSWORD RECOVERY ---
+from itsdangerous import URLSafeTimedSerializer
+
+# Secret key for token generation (In prod, move to Env Var)
+SECRET_KEY = "bisual_secret_key_change_me"
+security = URLSafeTimedSerializer(SECRET_KEY)
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_page(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request})
+
+@router.post("/forgot-password")
+async def forgot_password_submit(request: Request, email: str = Form(...), db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == email).first()
+    
+    if not user:
+        # Security: Don't reveal if user exists. Delay slightly if needed to prevent timing attacks.
+        return templates.TemplateResponse("forgot_password.html", {
+            "request": request, 
+            "message": "Eğer e-posta sistemde kayıtlıysa sıfırlama bağlantısı gönderildi."
+        })
+    
+    # Generate Token (Valid for 1 hour)
+    token = security.dumps(user.email, salt="password-reset-salt")
+    
+    # Generate Link
+    # For now, we assume current host. In prod, use explicit domain.
+    base_url = str(request.base_url).rstrip("/")
+    reset_link = f"{base_url}/reset-password/{token}"
+    
+    # TODO: Send Email via SMTP
+    # For now: Print to console
+    print(f"\n[PASSWORD RESET] Link for {email}: {reset_link}\n")
+    
+    return templates.TemplateResponse("forgot_password.html", {
+        "request": request, 
+        "message": "Eğer e-posta sistemde kayıtlıysa sıfırlama bağlantısı gönderildi. (Geliştirici Notu: Link Terminalde)"
+    })
+
+@router.get("/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(request: Request, token: str):
+    try:
+        email = security.loads(token, salt="password-reset-salt", max_age=3600)
+    except:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Bağlantı geçersiz veya süresi dolmuş."})
+        
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+
+@router.post("/reset-password/{token}")
+async def reset_password_submit(
+    request: Request, 
+    token: str,
+    password: str = Form(...), 
+    confirm_password: str = Form(...), 
+    db: Session = Depends(get_db)
+):
+    try:
+        email = security.loads(token, salt="password-reset-salt", max_age=3600)
+    except:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Bağlantı geçersiz veya süresi dolmuş."})
+    
+    if password != confirm_password:
+        return templates.TemplateResponse("reset_password.html", {
+            "request": request, 
+            "token": token, 
+            "error": "Şifreler eşleşmiyor."
+        })
+        
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Kullanıcı bulunamadı."})
+    
+    # Update Password
+    user.password = password # In prod, ensure this is hashed! (Currently storing raw based on existing code)
+    db.commit()
+    
+    return templates.TemplateResponse("login.html", {
+        "request": request, 
+        "error": "Şifreniz başarıyla güncellendi. Giriş yapabilirsiniz." # Using 'error' div for success message mostly to reuse style, or update login.html to support success msg
+    })
