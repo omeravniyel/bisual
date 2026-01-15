@@ -13,7 +13,9 @@ if DATABASE_URL:
     # Fix for SQLAlchemy requiring 'postgresql://' instead of 'postgres://'
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    engine = create_engine(DATABASE_URL)
+    
+    # Supabase requires SSL
+    engine = create_engine(DATABASE_URL, connect_args={"sslmode": "require"})
 else:
     # Vercel Read-Only File System Fix (Fallback to SQLite)
     if os.environ.get("VERCEL"):
