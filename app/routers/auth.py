@@ -94,6 +94,9 @@ async def super_admin_dashboard(request: Request, db: Session = Depends(get_db))
     
     # Fetch Approved Users (Active Teachers)
     approved_users = db.query(models.User).filter(models.User.is_approved == True, models.User.role != 'super_admin').all()
+
+    # Fetch Password Reset Requests
+    reset_requests = db.query(models.User).filter(models.User.reset_requested == True).all()
     
     # Statistics
     stats = {
@@ -107,6 +110,7 @@ async def super_admin_dashboard(request: Request, db: Session = Depends(get_db))
         "request": request, 
         "pending_users": pending_users, 
         "approved_users": approved_users,
+        "reset_requests": reset_requests,
         "stats": stats,
         "admin_name": user.username
     })
