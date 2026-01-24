@@ -76,6 +76,12 @@
             BiSual</div>
 
         <div class="flex items-center gap-4">
+            <!-- Music Toggle -->
+            <button @click="toggleMusic()"
+                class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-pink-400 hover:scale-105 transition active:scale-95">
+                <span x-text="musicPlaying ? '🎵' : '🔇'"></span>
+            </button>
+
             <!-- Mode Toggle -->
             <button @click="toggleTheme()"
                 class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:scale-105 transition active:rotate-90">
@@ -286,11 +292,17 @@
                 },
 
                 // Audio State
-                muted: false,
+                muted: true, // Start muted to support autoplay policies
+                get musicPlaying() { return !this.muted; },
+
+                toggleMusic() {
+                    this.toggleMute();
+                },
+
                 sounds: {
-                    lobby: new Audio('/static/audio/lobby.mp3'),
-                    question: new Audio('/static/audio/question.mp3'),
-                    answer: new Audio('/static/audio/answer.mp3'), // Time's up
+                    lobby: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
+                    question: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), // Placeholder for question
+                    answer: new Audio('/static/audio/answer.mp3'),
                     end: new Audio('/static/audio/end.mp3')
                 },
 
