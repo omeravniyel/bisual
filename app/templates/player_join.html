@@ -43,6 +43,11 @@
 
 <body class="h-screen flex flex-col mesh-bg text-white" x-data="playerGame()" x-cloak>
 
+    <!-- Background Music for Waiting Screen -->
+    <audio id="waitingMusic" loop>
+        <source src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c4d748ceb.mp3" type="audio/mpeg">
+    </audio>
+
     <!-- HEADER (Pin & Score) -->
     <div class="h-14 bg-black/20 backdrop-blur flex justify-between items-center px-4 shrink-0 z-10"
         x-show="state !== 'LOGIN'">
@@ -256,11 +261,18 @@
                     else if (data.type === 'GAME_JOINED') {
                         this.state = 'WAITING';
                         this.theme = data.theme || 'standard';
+                        // Play waiting music
+                        const music = document.getElementById('waitingMusic');
+                        if (music) music.play().catch(e => console.log('Music autoplay blocked:', e));
                     }
                     else if (data.type === 'NEW_QUESTION') {
                         this.state = 'ANSWERING';
                         this.currentQuestion = data;
                         this.questionStartTime = Date.now();
+
+                        // Pause waiting music
+                        const music = document.getElementById('waitingMusic');
+                        if (music) music.pause();
 
                         // Reset Inputs
                         this.textAnswer = '';
