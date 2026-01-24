@@ -44,6 +44,10 @@ class GameManager:
         self.active_games[pin] = session
         return pin
 
+    def get_game(self, pin: str) -> Optional[GameSession]:
+        """Check if a game with given PIN exists"""
+        return self.active_games.get(pin)
+
     async def join_game(self, pin: str, nickname: str, player_ws: WebSocket) -> bool:
         if pin in self.active_games:
             session = self.active_games[pin]

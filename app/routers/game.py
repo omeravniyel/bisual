@@ -13,9 +13,14 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/play", response_class=HTMLResponse)
 async def player_join_page(request: Request, pin: str = None):
     """Player join page - shows nickname input for given PIN"""
+    # Validate PIN - if invalid or missing, redirect to home
+    if not pin or not game_manager.get_game(pin):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/", status_code=303)
+    
     return templates.TemplateResponse("player_join.html", {
         "request": request,
-        "pin": pin or ""
+        "pin": pin
     })
 
 @router.websocket("/ws/host/{quiz_id}")
