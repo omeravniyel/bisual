@@ -22,6 +22,17 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+# Exception Handler for Debugging Production 500s
+@app.exception_handler(Exception)
+async def debug_exception_handler(request: Request, exc: Exception):
+    import traceback
+    error_details = traceback.format_exc()
+    print(f"CRITICAL ERROR: {error_details}")
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal Server Error", "detail": str(exc), "trace": error_details.split('\n')},
+    )
+
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
 

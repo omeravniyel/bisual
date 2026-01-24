@@ -82,6 +82,11 @@ async def host_list_page(request: Request, db: Session = Depends(get_db)):
     if not user: return RedirectResponse("/login")
     
     user_obj = db.query(models.User).filter(models.User.username == user).first()
+    if not user_obj:
+        response = RedirectResponse("/login")
+        response.delete_cookie("user_session")
+        return response
+        
     quizzes = db.query(models.Quiz).filter(models.Quiz.user_id == user_obj.id).all()
     return templates.TemplateResponse("host_list.html", {"request": request, "quizzes": quizzes})
 
