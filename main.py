@@ -11,6 +11,8 @@ import uuid
 import sys
 import os
 
+app = FastAPI(title="BiSual - Interactive Quiz Platform")
+
 # Helper for PyInstaller path
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -56,8 +58,6 @@ def run_migrations():
         print(f"Migration Init Warning: {e}")
 
 run_migrations()
-
-app = FastAPI(title="BiSual - Interactive Quiz Platform")
 
 # Manual Fix Route
 @app.get("/fix-db")
