@@ -9,6 +9,9 @@ class Player:
         self.websocket = websocket
         self.score = 0
         self.streak = 0
+        self.has_answered = False
+        self.last_answer_correct = False
+        self.last_points = 0
 
 class GameSession:
     def __init__(self, quiz_data: dict, host_websocket: WebSocket):
@@ -98,7 +101,12 @@ class GameManager:
             session.current_question_index += 1
             if session.current_question_index < len(session.quiz['questions']):
                 session.state = "QUESTION"
-                # Reset player answer flags if needed, though simpler to just ignore old ones
+                # Reset player answer flags
+                for p in session.players.values():
+                    p.has_answered = False
+                    p.last_answer_correct = False
+                    p.last_points = 0
+                
                 await self.broadcast_question(session)
             else:
                 session.state = "END"
@@ -150,8 +158,10 @@ class GameManager:
     async def handle_answer(self, pin: str, nickname: str, answer: any, time_left: int):
         if pin in self.active_games:
             session = self.active_games[pin]
-            player = session.players.get(nickname)
             if not player: return
+            
+            # Record that player answered
+            player.has_answered = True
 
             q = session.quiz['questions'][session.current_question_index]
             is_correct = False
@@ -211,17 +221,30 @@ class GameManager:
             if is_correct:
                 player.streak += 1
                 player.score += points
-                msg = {"type": "FEEDBACK", "result": "CORRECT", "score": player.score, "points_added": points}
+                player.last_answer_correct = True
+                player.last_points = points
+                msg = {"type": "FEEDBACK", "result": "CORRECT", "score": player.score, "points_added": points, "streak": player.streak}
             else:
                 player.streak = 0
-                msg = {"type": "FEEDBACK", "result": "WRONG", "score": player.score}
+                player.last_answer_correct = False
+                player.last_points = 0
+                msg = {"type": "FEEDBACK", "result": "WRONG", "score": player.score, "streak": 0}
             
             try:
                 await player.websocket.send_json(msg)
             except: pass
             
             # Notify Host of an answer (update count)
-            # await session.host_websocket.send_json({"type": "ANSWER_RECEIVED"}) # Optional optimization
+            answered_count = sum(1 for p in session.players.values() if p.has_answered)
+            total_players = len(session.players)
+            
+            try:
+                await session.host_websocket.send_json({
+                    "type": "ANSWER_UPDATE",
+                    "count": answered_count,
+                    "total": total_players
+                })
+            except: pass
 
     def get_leaderboard(self, session: GameSession):
         # Return top 5
@@ -234,6 +257,20 @@ class GameManager:
             session.state = "LEADERBOARD"
             data = self.get_leaderboard(session)
             await session.broadcast({"type": "LEADERBOARD", "data": data})
+
+            # Send individual results to players
+            sorted_players = sorted(session.players.values(), key=lambda p: p.score, reverse=True)
+            for rank, player in enumerate(sorted_players):
+                try:
+                    await player.websocket.send_json({
+                        "type": "QUESTION_RESULT",
+                        "is_correct": player.last_answer_correct,
+                        "score_earned": player.last_points,
+                        "total_score": player.score,
+                        "streak": player.streak,
+                        "rank": rank + 1
+                    })
+                except: pass
 
     def remove_game(self, pin: str):
 

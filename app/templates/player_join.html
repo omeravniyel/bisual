@@ -15,7 +15,8 @@
             color: #1e1e1e;
             user-select: none;
             overflow: hidden;
-            touch-action: manipulation;
+            overscroll-behavior: none;
+            touch-action: none;
         }
 
         .mesh-bg {
@@ -104,9 +105,11 @@
     <div x-show="state === 'ANSWERING'" class="flex-1 flex flex-col relative overflow-hidden" x-transition>
 
         <!-- Timer Bar -->
-        <div class="w-full h-2 bg-white/20">
+        <div class="w-full h-2 bg-white/20 relative">
             <div class="h-full bg-yellow-400 transition-all duration-[1000ms] linear"
                 :style="'width: ' + timerPercent + '%'"></div>
+            <div class="absolute top-4 right-4 text-white font-black text-2xl drop-shadow-md" x-text="timerValue + 's'">
+            </div>
         </div>
 
         <!-- Question Text (Optional on mobile, but helpful) -->
@@ -199,27 +202,35 @@
     </div>
 
     <!-- FEEDBACK SCREEN -->
-    <div x-show="state === 'FEEDBACK'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
-        :class="lastResult === 'CORRECT' ? 'bg-green-600' : 'bg-red-600'" x-transition>
+    <div x-show="state === 'FEEDBACK'"
+        class="flex col h-full items-center justify-center p-6 text-center animate-pulse relative"
+        :class="lastResult === 'CORRECT' ? 'bg-green-500' : 'bg-red-500'" x-transition>
 
-        <div class="text-9xl mb-4 filter drop-shadow-xl" x-text="lastResult === 'CORRECT' ? '🎉' : '😓'"></div>
+        <div x-show="lastResult === 'CORRECT'">
+            <div class="text-8xl mb-4">🤩</div>
+            <h2 class="text-5xl font-black text-white mb-4">HARİKA!</h2>
+            <div class="text-3xl font-bold text-white/90">+<span x-text="lastPoints"></span> Puan</div>
 
-        <h2 class="text-5xl font-black mb-2 drop-shadow-md" x-text="lastResult === 'CORRECT' ? 'DOĞRU!' : 'YANLIŞ'">
-        </h2>
-
-        <div x-show="lastResult === 'CORRECT'" class="mt-4 bg-black/20 px-8 py-3 rounded-full backdrop-blur-sm">
-            <span class="text-3xl font-bold">+</span>
-            <span class="text-3xl font-bold" x-text="lastPoints"></span>
+            <!-- STREAK -->
+            <div x-show="streak > 1" class="mt-8 bg-white/20 px-6 py-3 rounded-full animate-bounce">
+                <span class="text-3xl">🔥</span>
+                <span class="text-2xl font-black text-white ml-2" x-text="streak + ' Seri!'"></span>
+            </div>
         </div>
 
-        <div class="mt-12 text-center" x-show="lastResult === 'WRONG'">
-            <div class="text-white/70 font-medium">Pes etmek yok!</div>
+        <div x-show="lastResult === 'WRONG'">
+            <div class="text-8xl mb-4">😢</div>
+            <h2 class="text-5xl font-black text-white mb-4">HAY AKSİ...</h2>
+            <div class="text-2xl font-bold text-white/80">Bir dahakine!</div>
         </div>
-
         <div class="fixed bottom-10 flex flex-col items-center">
-            <div class="text-sm uppercase tracking-widest opacity-60 mb-1">Toplam Puan</div>
-            <div class="text-5xl font-black" x-text="score"></div>
+            <div class="text-xs text-white/70 font-bold tracking-widest uppercase">Puanın</div>
+            <div class="font-black text-2xl text-white drop-shadow-md" x-text="score"></div>
         </div>
+        <!-- Timer Text -->
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 font-black text-4xl text-white drop-shadow-lg"
+            x-show="state === 'ANSWERING'" x-text="timerValue"></div>
+        <div class="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10"></div>
     </div>
 
     <script>
@@ -229,9 +240,12 @@
                 pin: new URLSearchParams(window.location.search).get('pin') || '',
                 nickname: '',
                 ws: null,
+                // Data
                 score: 0,
-                lastResult: null,
+                lastResult: '',
                 lastPoints: 0,
+                streak: 0,
+                timerValue: 0,
                 questionStartTime: 0,
                 timerPercent: 100,
                 timerInterval: null,
@@ -275,7 +289,9 @@
                     }
                     else if (data.type === 'GAME_JOINED') {
                         this.state = 'WAITING';
-                        this.theme = data.theme || 'standard';
+                        this.score = data.score;
+                        // Apply theme if sent
+                        if (data.theme) document.body.className = `theme-${data.theme}`;
                         // Play waiting music
                         const music = document.getElementById('waitingMusic');
                         if (music) music.play().catch(e => console.log('Music autoplay blocked:', e));
@@ -300,11 +316,18 @@
                         this.state = 'FEEDBACK';
                         this.lastResult = data.result;
                         this.score = data.score;
+                        if (data.streak) this.streak = data.streak; else this.streak = 0;
                         if (data.points_added) this.lastPoints = data.points_added;
 
                         setTimeout(() => {
                             if (this.state === 'FEEDBACK') this.state = 'WAITING';
                         }, 5000);
+                    }
+                    else if (data.type === 'QUESTION_RESULT') {
+                        // Optional: Show detail summary if needed
+                        // For now FEEDBACK handles mostly everything
+                        this.score = data.total_score;
+                        this.streak = data.streak;
                     }
                     else if (data.type === 'GAME_OVER') {
                         alert("Oyun Bitti! Skorun: " + this.score);
@@ -337,12 +360,20 @@
                 startTimer(seconds) {
                     clearInterval(this.timerInterval);
                     this.timerPercent = 100;
-                    const step = 100 / (seconds * 10); // execute every 100ms
+                    this.timerValue = seconds; // Set text timer
+                    const step = 100 / (seconds * 10);
 
                     this.timerInterval = setInterval(() => {
                         this.timerPercent -= step;
+                        // Update text timer every second approximately
+                        if (this.timerPercent % (100 / seconds) < step) {
+                            this.timerValue = Math.ceil(this.timerPercent / (100 / seconds));
+                        }
+
                         if (this.timerPercent <= 0) {
                             clearInterval(this.timerInterval);
+                            this.timerValue = 0;
+                            // Time's up logic if needed
                         }
                     }, 100);
                 }
