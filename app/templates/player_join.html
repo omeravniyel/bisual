@@ -58,13 +58,9 @@
             <h1 class="text-3xl font-black mb-6 tracking-tight">BiSual'a Katıl</h1>
 
             <div class="space-y-4">
-                <input type="tel" x-model="pin" x-show="!pin || pin.length === 0"
-                    class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center text-2xl font-bold tracking-widest outline-none focus:border-black transition placeholder-gray-400 text-black"
-                    placeholder="Game PIN" maxlength="6">
-
                 <input type="text" x-model="nickname"
                     class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center text-xl font-bold outline-none focus:border-black transition placeholder-gray-400 text-black"
-                    placeholder="Adınız" maxlength="12">
+                    placeholder="Adınız" maxlength="12" autofocus>
 
                 <button @click="join()"
                     class="w-full bg-black text-white font-black py-4 rounded-xl text-lg hover:bg-gray-800 transition transform active:scale-95 btn-shadow border-none">
