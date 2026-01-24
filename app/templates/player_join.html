@@ -73,13 +73,18 @@
     <!-- WAITING SCREEN -->
     <div x-show="state === 'WAITING'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
         x-transition>
-        <div class="animate-bounce text-6xl mb-6">⏳</div>
-        <h2 class="text-3xl font-bold mb-2">Hazır Ol!</h2>
-        <p class="text-white/60 text-lg">Yarışma ekranına bak...</p>
+        <div class="animate-bounce text-7xl mb-8">⏳</div>
+        <h2
+            class="text-4xl font-black mb-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text animate-pulse">
+            Hazır Ol!</h2>
+        <p class="text-white/70 text-xl mb-2">Yarışma ekranına bak...</p>
+        <p class="text-white/50 text-sm">Soru geldiğinde cevapla!</p>
 
-        <div class="mt-12 bg-white/10 backdrop-blur p-4 rounded-xl">
-            <div class="text-sm opacity-60">Senin Puanın</div>
-            <div class="text-4xl font-black" x-text="score"></div>
+        <div
+            class="mt-16 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl transform hover:scale-105 transition-transform">
+            <div class="text-xs uppercase tracking-widest opacity-60 mb-2">Senin Puanın</div>
+            <div class="text-5xl font-black bg-gradient-to-r from-green-400 to-blue-500 text-transparent bg-clip-text"
+                x-text="score">0</div>
         </div>
     </div>
 
