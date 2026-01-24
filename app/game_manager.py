@@ -31,6 +31,7 @@ class GameSession:
 class GameManager:
     def __init__(self):
         self.active_games: Dict[str, GameSession] = {}
+        self.quiz_pins: Dict[int, str] = {}  # quiz_id -> pin mapping
 
     def generate_pin(self) -> str:
         while True:
@@ -39,7 +40,19 @@ class GameManager:
                 return pin
 
     async def create_game(self, quiz_data: dict, host_ws: WebSocket) -> str:
-        pin = self.generate_pin()
+        quiz_id = quiz_data.get('id')
+        
+        # Reuse existing PIN for this quiz if available
+        if quiz_id and quiz_id in self.quiz_pins:
+            pin = self.quiz_pins[quiz_id]
+            # Remove old session if exists
+            if pin in self.active_games:
+                self.remove_game(pin)
+        else:
+            pin = self.generate_pin()
+            if quiz_id:
+                self.quiz_pins[quiz_id] = pin
+        
         session = GameSession(quiz_data, host_ws)
         self.active_games[pin] = session
         return pin
