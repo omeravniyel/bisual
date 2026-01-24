@@ -52,6 +52,7 @@ class QuizBase(BaseModel):
     title: str
     description: Optional[str] = None
     theme: str = "standard"
+    settings: Optional[dict] = {}
 
 class QuizCreate(QuizBase):
     questions: List[QuestionCreate]

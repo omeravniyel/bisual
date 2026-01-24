@@ -9,6 +9,7 @@ class Quiz(Base):
     title = Column(String, index=True)
     description = Column(String, nullable=True)
     theme = Column(String, default="standard")
+    settings = Column(JSON, default={})  # New: Store flexible settings
     user_id = Column(Integer, ForeignKey("users.id"))
     
     questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")

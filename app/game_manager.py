@@ -16,7 +16,9 @@ class GameSession:
         self.host_websocket = host_websocket
         self.players: Dict[str, Player] = {} # socket/id -> Player
         self.state = "LOBBY" # LOBBY, QUESTION, LEADERBOARD, END
+        self.state = "LOBBY" # LOBBY, QUESTION, LEADERBOARD, END
         self.current_question_index = 0
+        self.current_shuffled_options = [] # Store options order for current question
 
     async def broadcast(self, message: dict):
         # Send to Host
@@ -104,24 +106,38 @@ class GameManager:
 
     async def broadcast_question(self, session: GameSession):
         q = session.quiz['questions'][session.current_question_index]
+        settings = session.quiz.get('settings', {})
         
-        # Data for Host (Includes everything)
+        # Shuffle Logic
+        options = q['options'].copy() # Copy original options
+        if settings.get('shuffle_options', False):
+            random.shuffle(options)
+        
+        session.current_shuffled_options = options
+        
+        # Prepare Host Payload (Use shuffled options)
+        # We need to construct a question object with shuffled options for the host
+        q_for_host = q.copy()
+        q_for_host['options'] = options
+
         await session.host_websocket.send_json({
             "type": "NEW_QUESTION",
-            "question": q,
+            "question": q_for_host,
             "index": session.current_question_index,
             "total": len(session.quiz['questions'])
         })
 
-        # Data for Players
+        # Prepare Player Payload
+        show_on_phone = settings.get('show_question_on_player', False)
+        
         await self.broadcast_to_players(session, {
             "type": "NEW_QUESTION",
-            "text": q['text'],
+            "text": q['text'] if show_on_phone else "", # Hide text if setting OFF
             "time": q['time'],
             "q_type": q['type'],
-            "image": q.get('image'),
-            "options": [o['text'] for o in q['options']], # Send labels for T/F or Poll
-            "options_count": len(q['options'])
+            "image": q.get('image') if show_on_phone else None,
+            "options": [o['text'] for o in options] if show_on_phone else [], # Send labels only if ON
+            "options_count": len(options)
         })
 
     async def broadcast_to_players(self, session: GameSession, message: dict):
@@ -174,10 +190,13 @@ class GameManager:
 
             else: 
                 # Multiple Choice / True-False (Index based)
+                # Use shuffled options if available
+                options = session.current_shuffled_options if session.current_shuffled_options else q['options']
+                
                 try:
                     ans_idx = int(answer)
-                    if 0 <= ans_idx < len(q['options']):
-                        if q['options'][ans_idx]['is_correct']:
+                    if 0 <= ans_idx < len(options):
+                        if options[ans_idx]['is_correct']:
                             is_correct = True
                 except:
                     is_correct = False

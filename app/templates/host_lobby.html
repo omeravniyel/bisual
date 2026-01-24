@@ -168,6 +168,16 @@
                     x-transition:enter-start="opacity-0 scale-90 translate-y-4"
                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
                     class="mt-6 max-h-[300px] rounded-xl shadow-2xl border-4 border-white dark:border-slate-700 object-cover hover:scale-[1.02] transition-transform">
+
+                <!-- Manual Next Button (If Leaderboard Skipped) -->
+                <button @click="ws.send(JSON.stringify({ type: 'NEXT_QUESTION' }))"
+                    x-show="showAnswer && settings.show_leaderboard_every_question === false && currentQuestionIndex < totalQuestions - 1"
+                    x-transition:enter="transition ease-out duration-300 delay-500"
+                    x-transition:enter-start="opacity-0 translate-y-4"
+                    x-transition:enter-end="opacity-100 translate-y-0"
+                    class="mt-8 bg-indigo-600 hover:bg-indigo-500 text-white text-2xl font-bold py-3 px-12 rounded-xl shadow-lg transition active:scale-95 flex items-center gap-2">
+                    Sonraki Soru ➡️
+                </button>
             </div>
 
             <!-- Options Grid -->
@@ -293,6 +303,7 @@
 
                 // Audio State
                 muted: true, // Start muted to support autoplay policies
+                settings: {}, // Store game settings
                 get musicPlaying() { return !this.muted; },
 
                 toggleMusic() {
@@ -395,6 +406,7 @@
 
                     if (data.type === 'GAME_CREATED') {
                         this.pin = data.pin;
+                        this.settings = data.settings || {};
                         this.playMusic('lobby');
 
                         // Generate QR Code
@@ -456,10 +468,16 @@
                             clearInterval(this.timerInterval);
                             this.showAnswer = true;
                             this.simplePlay('answer'); // Play time's up sound
-                            // Auto show leaderboard after 5 seconds of showing answer
-                            setTimeout(() => {
-                                this.ws.send(JSON.stringify({ type: 'SHOW_LEADERBOARD' }));
-                            }, 5000);
+                            // Auto show leaderboard OR show manual next button based on settings
+                            const showLeaderboard = this.settings.show_leaderboard_every_question !== false; // Default true if undefined
+                            const isLastQuestion = this.currentQuestionIndex >= this.totalQuestions - 1;
+
+                            if (showLeaderboard || isLastQuestion) {
+                                setTimeout(() => {
+                                    this.ws.send(JSON.stringify({ type: 'SHOW_LEADERBOARD' }));
+                                }, 5000);
+                            }
+                            // Else: Stay on this screen, show manual button (handled in HTML)
                         }
                     }, 1000);
                 },

@@ -39,6 +39,7 @@ async def websocket_host(websocket: WebSocket, quiz_id: int, db: Session = Depen
         "id": quiz.id,
         "title": quiz.title,
         "theme": quiz.theme,
+        "settings": quiz.settings or {},
         "questions": []
     }
     for q in quiz.questions:
@@ -56,7 +57,11 @@ async def websocket_host(websocket: WebSocket, quiz_id: int, db: Session = Depen
     pin = await game_manager.create_game(quiz_data, websocket)
     
     # Send PIN to Host
-    await websocket.send_json({"type": "GAME_CREATED", "pin": pin})
+    await websocket.send_json({
+        "type": "GAME_CREATED", 
+        "pin": pin,
+        "settings": quiz.settings or {}
+    })
 
     try:
         while True:

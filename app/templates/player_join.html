@@ -120,20 +120,28 @@
             <div x-show="['multiple_choice', 'poll'].includes(currentQuestion.q_type)"
                 class="h-full grid grid-cols-2 gap-4">
                 <button @click="submitAnswer(0)"
-                    class="bg-red-500 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
-                    <span class="text-6xl text-white drop-shadow-md">▲</span>
+                    class="bg-red-500 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
+                    <span class="text-5xl text-white drop-shadow-md">▲</span>
+                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                        x-text="currentQuestion.options && currentQuestion.options[0]"></span>
                 </button>
                 <button @click="submitAnswer(1)"
-                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
-                    <span class="text-6xl text-white drop-shadow-md">◆</span>
+                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
+                    <span class="text-5xl text-white drop-shadow-md">◆</span>
+                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                        x-text="currentQuestion.options && currentQuestion.options[1]"></span>
                 </button>
                 <button @click="submitAnswer(2)"
-                    class="bg-yellow-500 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
-                    <span class="text-6xl text-white drop-shadow-md">●</span>
+                    class="bg-yellow-500 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
+                    <span class="text-5xl text-white drop-shadow-md">●</span>
+                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                        x-text="currentQuestion.options && currentQuestion.options[2]"></span>
                 </button>
                 <button @click="submitAnswer(3)"
-                    class="bg-green-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center">
-                    <span class="text-6xl text-white drop-shadow-md">■</span>
+                    class="bg-green-600 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
+                    <span class="text-5xl text-white drop-shadow-md">■</span>
+                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                        x-text="currentQuestion.options && currentQuestion.options[3]"></span>
                 </button>
             </div>
 
