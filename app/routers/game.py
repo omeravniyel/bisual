@@ -1,4 +1,6 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models, schemas
@@ -6,6 +8,15 @@ from ..game_manager import game_manager
 import json
 
 router = APIRouter()
+templates = Jinja2Templates(directory="app/templates")
+
+@router.get("/play", response_class=HTMLResponse)
+async def player_join_page(request: Request, pin: str = None):
+    """Player join page - shows nickname input for given PIN"""
+    return templates.TemplateResponse("player_join.html", {
+        "request": request,
+        "pin": pin or ""
+    })
 
 @router.websocket("/ws/host/{quiz_id}")
 async def websocket_host(websocket: WebSocket, quiz_id: int, db: Session = Depends(get_db)):
