@@ -85,6 +85,13 @@
         <p class="text-white/70 text-xl mb-2">Yarışma ekranına bak...</p>
         <p class="text-white/50 text-sm">Soru geldiğinde cevapla!</p>
 
+        <!-- Music Control Button -->
+        <button
+            @click="const music = document.getElementById('waitingMusic'); music.paused ? music.play() : music.pause()"
+            class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur px-6 py-2 rounded-full text-sm transition-all border border-white/20">
+            🎵 Müzik
+        </button>
+
         <div
             class="mt-16 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl transform hover:scale-105 transition-transform">
             <div class="text-xs uppercase tracking-widest opacity-60 mb-2">Senin Puanın</div>
