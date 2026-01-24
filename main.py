@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
+from sqlalchemy import text
 from app.database import engine, SessionLocal
 from app.routers import quiz, game, auth
 from app import models
@@ -23,6 +24,26 @@ def resource_path(relative_path):
 
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
+
+# Auto-Migrate (Simple SQLite support for missing columns)
+def run_migrations():
+    try:
+        with engine.connect() as conn:
+            # Only for SQLite for now
+            if 'sqlite' in str(engine.url):
+                # Check quizzes table
+                res = conn.execute(text("PRAGMA table_info(quizzes)"))
+                columns = [row[1] for row in res.fetchall()]
+                
+                # If table exists but settings column is missing
+                if columns and 'settings' not in columns:
+                    print("Migrating DB: Adding settings column...")
+                    conn.execute(text("ALTER TABLE quizzes ADD COLUMN settings JSON DEFAULT '{}'"))
+                    print("Migration successful.")
+    except Exception as e:
+        print(f"Migration Init Warning: {e}")
+
+run_migrations()
 
 app = FastAPI(title="BiSual - Interactive Quiz Platform")
 
