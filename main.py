@@ -28,7 +28,8 @@ models.Base.metadata.create_all(bind=engine)
 # Auto-Migrate (Simple SQLite support for missing columns)
 def run_migrations():
     try:
-        with engine.connect() as conn:
+        # Use begin() to ensure commit
+        with engine.begin() as conn:
             # Only for SQLite for now
             if 'sqlite' in str(engine.url):
                 # Check quizzes table
@@ -46,6 +47,15 @@ def run_migrations():
 run_migrations()
 
 app = FastAPI(title="BiSual - Interactive Quiz Platform")
+
+# Manual Fix Route
+@app.get("/fix-db")
+def manual_fix_db():
+    try:
+        run_migrations()
+        return {"status": "executed", "message": "Migration logic ran. Check logs or functionality."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # Mount bundled static files (CSS, JS, Audio) - Read Only
 app.mount("/static", StaticFiles(directory=resource_path("app/static")), name="static")
