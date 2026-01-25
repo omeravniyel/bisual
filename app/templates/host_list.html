@@ -205,7 +205,8 @@
                 </div>
 
                 <!-- MAIN CREATE BUTTON -->
-                <button @click="showCreateSelection = true"
+                <button @click="console.log('Alpine Click'); showCreateSelection = true"
+                    onclick="alert('Debug: Button Clicked! If you see this, basic JS works.')"
                     class="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20 cursor-pointer">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -336,8 +337,7 @@
 
     <!-- Create Selection Modal -->
     <div x-show="showCreateSelection"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" style="display: none;">
-        <!-- Inline style display:none for non-alpine fallback -->
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" x-cloak>
 
         <div class="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl p-8 relative"
             @click.outside="showCreateSelection = false">
@@ -377,7 +377,7 @@
 
     <!-- AI Modal -->
     <div x-show="showAiModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-        style="display: none;">
+        x-cloak>
         <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative"
             @click.outside="showAiModal = false">
             <h2 class="text-2xl font-bold text-white mb-4">AI Yarışma</h2>
@@ -395,7 +395,7 @@
 
     <!-- Upload Modal -->
     <div x-show="showUpload" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-        style="display: none;">
+        x-cloak>
         <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative"
             @click.outside="showUpload = false">
             <h2 class="text-2xl font-bold text-white mb-4">Excel Yükle</h2>
@@ -413,7 +413,7 @@
 
     <!-- Preview Modal -->
     <div x-show="showPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-        style="display: none;">
+        x-cloak>
         <div class="bg-slate-900 border border-slate-700 w-full max-w-3xl h-[80vh] rounded-2xl shadow-2xl p-4 relative flex flex-col"
             @click.outside="showPreview = false">
             <div x-show="previewLoading" class="m-auto text-white">Yükleniyor...</div>
