@@ -72,24 +72,25 @@ async def generate_quiz_preview(
     """
 
     try:
-    # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
-    models_to_try = ['gemini-1.5-flash', 'gemini-pro']
-    
-    response = None
-    last_error = None
+        # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
+        models_to_try = ['gemini-1.5-flash', 'gemini-pro']
+        
+        response = None
+        last_error = None
 
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            break
-        except Exception as e:
-            print(f"Model {model_name} failed: {e}")
-            last_error = e
-            continue
-            
-    if not response and last_error:
-        raise last_error
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                break
+            except Exception as e:
+                print(f"Model {model_name} failed: {e}")
+                last_error = e
+                continue
+                
+        if not response and last_error:
+            raise last_error
+
         text_resp = response.text.strip()
         if text_resp.startswith("```"):
             text_resp = text_resp.replace("```json", "").replace("```", "")
@@ -162,24 +163,25 @@ async def generate_quiz_ai(
     """
 
     try:
-    # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
-    models_to_try = ['gemini-1.5-flash', 'gemini-pro']
+        # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
+        models_to_try = ['gemini-1.5-flash', 'gemini-pro']
+        
+        response = None
+        last_error = None
     
-    response = None
-    last_error = None
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                break # Success
+            except Exception as e:
+                print(f"Model {model_name} failed: {e}")
+                last_error = e
+                continue
+                
+        if not response and last_error:
+            raise last_error # Re-raise if all failed
 
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            break # Success
-        except Exception as e:
-            print(f"Model {model_name} failed: {e}")
-            last_error = e
-            continue
-            
-    if not response and last_error:
-        raise last_error # Re-raise if all failed
         text_resp = response.text.strip()
         
         # Cleanup potential markdown code blocks if the model ignores instruction
