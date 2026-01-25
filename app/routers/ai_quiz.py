@@ -139,61 +139,69 @@ async def generate_quiz_ai(
     # Configure Gemini
     genai.configure(api_key=API_KEY)
     
-    # Use Flash model for speed/cost
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Try models from the user's available list
+    models_to_try = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-pro-latest']
+    
+    response = None
+    last_error = None
+    
+    # Handle both single topic (legacy/fallback) and detailed topic list
+    topics = payload.get("topics")
+    if not topics:
+         # Fallback if frontend sends old format
+         topic = payload.get("topic", "Genel Kültür")
+         count = payload.get("count", 5)
+         # Limits for fallback count
+         if count > 20: count = 20
+         if count < 1: count = 5
+         topics = [topic] * count
+
+    # Construct prompt for per-question topics
+    topics_str = "\n".join([f"Question {i+1} Topic: {t}" for i, t in enumerate(topics)])
 
     prompt = f"""
-    Create a quiz about "{topic}" with {count} questions. 
-    Difficulty level: {difficulty}.
+    Create a quiz with exactly {len(topics)} questions.
+    I will provide a specific topic for EACH question. You must follow this strictly.
+    
+    {topics_str}
+    
+    Difficulty: {difficulty}.
     Language: Turkish (Türkçe).
     
     Return ONLY a raw JSON object (no markdown formatting, no backticks).
     Structure:
     {{
-        "title": "Creative Quiz Title",
-        "description": "Short description",
+        "title": "Yarışma Başlığı",
+        "description": "Yapay zeka ile oluşturuldu.",
         "questions": [
             {{
-                "text": "Question text here?",
+                "text": "Question text based on specific topic?",
                 "limit": 20,
                 "points": 1000,
                 "options": [
-                    {{ "text": "Option A", "is_correct": true }},
-                    {{ "text": "Option B", "is_correct": false }},
-                    {{ "text": "Option C", "is_correct": false }},
-                    {{ "text": "Option D", "is_correct": false }}
+                    {{ "text": "A", "is_correct": true }},
+                    {{ "text": "B", "is_correct": false }},
+                    {{ "text": "C", "is_correct": false }},
+                    {{ "text": "D", "is_correct": false }}
                 ]
             }}
         ]
     }}
-    Make sure to randomize the correct option position.
+    Randomize correct option position.
     """
 
-    try:
-        # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
-        models_to_try = ['gemini-1.5-flash', 'gemini-pro']
-        
-        response = None
-        last_error = None
-    
-        for model_name in models_to_try:
-            try:
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(prompt)
-                break # Success
-            except Exception as e:
-                print(f"Model {model_name} failed: {e}")
-                last_error = e
-                continue
-                
-        if not response and last_error:
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            break # Success
+        except Exception as e:
+            print(f"Model {model_name} failed: {e}")
+            last_error = e
+            continue
+            
+    if not response and last_error:
         # Debugging: List available models to see what IS supported
-            try:
-                available = [m.name for m in genai.list_models()]
-                debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
-            except Exception as list_exc:
-                debug_msg = f"Model listesi alınamadı: {list_exc}"
-                
             print(f"All models failed. {debug_msg}")
             raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
 

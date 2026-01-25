@@ -94,7 +94,8 @@
     <!-- AI Modal -->
     <dialog id="aiModal"
         class="bg-slate-900 border border-slate-700 rounded-2xl p-0 backdrop:bg-black/80 w-full max-w-lg">
-        <div class="p-8 relative" x-data="{ aiTopic: '', aiCount: 10, aiDifficulty: 'medium', loading: false }">
+        <div class="p-8 relative"
+            x-data="{ aiTopics: ['', '', ''], aiCount: 3, aiDifficulty: 'medium', loading: false }">
             <button onclick="this.closest('dialog').close()"
                 class="absolute top-4 right-4 text-slate-500 hover:text-white text-2xl">×</button>
             <h2 class="text-2xl font-bold text-white mb-6">AI Yarışma Sihirbazı</h2>
@@ -105,24 +106,43 @@
             </div>
 
             <div x-show="!loading" class="space-y-4">
-                <input type="text" x-model="aiTopic" placeholder="Konu (örn: 2. Dünya Savaşı)"
-                    class="w-full bg-slate-800 border-slate-700 rounded-xl p-4 text-white outline-none focus:border-purple-500 text-lg">
 
-                <div class="grid grid-cols-2 gap-4">
-                    <select x-model="aiDifficulty" class="bg-slate-800 border-slate-700 rounded-xl p-3 text-white">
-                        <option value="easy">Kolay</option>
-                        <option value="medium">Orta</option>
-                        <option value="hard">Zor</option>
-                    </select>
-                    <div class="flex items-center gap-2 bg-slate-800 rounded-xl p-3 px-4">
-                        <span class="text-slate-400 text-sm">Soru:</span>
-                        <input type="number" x-model="aiCount" min="3" max="20"
-                            class="bg-transparent text-white w-full outline-none font-bold">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="flex-1">
+                        <label class="text-xs text-slate-400 font-bold uppercase ml-1">Zorluk</label>
+                        <select x-model="aiDifficulty"
+                            class="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white mt-1">
+                            <option value="easy">Kolay</option>
+                            <option value="medium">Orta</option>
+                            <option value="hard">Zor</option>
+                        </select>
+                    </div>
+                    <div class="w-24">
+                        <label class="text-xs text-slate-400 font-bold uppercase ml-1">Soru Sayısı</label>
+                        <input type="number" x-model="aiCount" min="1" max="10" @change="
+                                // Adjust topics array length
+                                let count = parseInt(aiCount) || 1;
+                                if(count > 10) count = 10;
+                                if(count < 1) count = 1;
+                                aiCount = count;
+                                aiTopics = Array.from({length: count}, (_, i) => aiTopics[i] || '');
+                            "
+                            class="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white text-center font-bold mt-1 outline-none focus:border-purple-500">
                     </div>
                 </div>
 
+                <div class="max-h-[40vh] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                    <template x-for="(topic, index) in aiTopics" :key="index">
+                        <div class="flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                            <span class="text-purple-400 font-bold w-6 text-right" x-text="index + 1 + '.'"></span>
+                            <input type="text" x-model="aiTopics[index]" :placeholder="(index + 1) + '. Sorunun konusu'"
+                                class="flex-1 bg-slate-800/50 border-slate-700 rounded-lg p-3 text-white outline-none focus:border-purple-500 focus:bg-slate-800 transition">
+                        </div>
+                    </template>
+                </div>
+
                 <button @click="
-                    if(!aiTopic) return alert('Konu giriniz');
+                    if(aiTopics.some(t => !t.trim())) return alert('Lütfen tüm sorular için konu giriniz.');
                     loading = true;
                     fetch('/api/ai/generate', {
                         method: 'POST',
@@ -130,14 +150,18 @@
                             'Content-Type': 'application/json',
                             'X-CSRF-Token': getCookie('csrf_token')
                         },
-                        body: JSON.stringify({topic: aiTopic, count: parseInt(aiCount), difficulty: aiDifficulty})
+                        body: JSON.stringify({
+                            topics: aiTopics, 
+                            count: parseInt(aiCount), 
+                            difficulty: aiDifficulty
+                        })
                     }).then(res => res.json()).then(data => {
                         if(data.id || data.status === 'success') { window.location.href = '/host'; }
                         else { alert('Hata: ' + (data.detail || 'başarısız')); loading = false; }
-                    }).catch(e => { alert('Hata'); loading = false; })
+                    }).catch(e => { alert('Hata: ' + e); loading = false; })
                 "
-                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition text-white font-bold py-4 rounded-xl text-lg mt-4">
-                    🪄 Oluştur
+                    class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition text-white font-bold py-4 rounded-xl text-lg mt-4 shadow-lg shadow-purple-900/20">
+                    🪄 Soruları Oluştur
                 </button>
             </div>
         </div>
