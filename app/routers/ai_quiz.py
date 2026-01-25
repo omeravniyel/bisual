@@ -99,9 +99,16 @@ async def generate_quiz_ai(
                 question_type="multiple_choice",
                 time_limit=q.get("limit", 20),
                 points=q.get("points", 1000),
-                options=q.get("options"),
                 image_url=None
             )
+            
+            # Create Options objects
+            for opt in q.get("options", []):
+                question.options.append(models.Option(
+                    text=opt.get("text"),
+                    is_correct=opt.get("is_correct")
+                ))
+            
             db.add(question)
         
         db.commit()

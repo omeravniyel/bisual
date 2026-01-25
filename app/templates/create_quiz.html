@@ -58,7 +58,7 @@
     </script>
 </head>
 
-<body class="h-screen flex flex-col" x-data="quizEditor()">
+<body class="h-screen flex flex-col" x-data="quizEditor">
 
     <!-- TOP NAVBAR -->
     <nav class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-4 z-20 shadow-sm shrink-0">
@@ -669,8 +669,8 @@
     </div>
 
     <script>
-        function quizEditor(initialData = null) {
-            return {
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('quizEditor', () => ({
                 currentIndex: 0,
                 showSuccess: false,
                 showSettings: false,
@@ -679,7 +679,7 @@
                 showPointsSelector: false,
                 showThemeSelector: false,
                 uploading: false,
-                quiz: initialData || {
+                quiz: {
                     title: '',
                     description: '',
                     theme: 'standard',
@@ -715,6 +715,143 @@
 
                 get currentQuestion() {
                     return this.quiz.questions[this.currentIndex];
+                },
+
+                getTypeIcon(type) {
+                    const icons = {
+                        'multiple_choice': '💠',
+                        'true_false': '⚖️',
+                        'typing': '⌨️',
+                        'marked_answer': '📍',
+                        'poll': '📊'
+                    };
+                    return icons[type] || '❓';
+                },
+
+                getTypeName(type) {
+                    const names = {
+                        'multiple_choice': 'Quiz',
+                        'true_false': 'Doğru/Yanlış',
+                        'typing': 'Kısa Cevap',
+                        'marked_answer': 'İşaretli Cevap',
+                        'poll': 'Oylama'
+                    };
+                    return names[type] || type;
+                },
+
+                formatTime(seconds) {
+                    return seconds + ' sn';
+                },
+
+                formatPoints(points) {
+                    if (points === 0) return '0 puan';
+                    if (points === 2000) return 'İki kat puan';
+                    return 'Standart';
+                },
+
+                getThemeName(theme) {
+                    const themes = {
+                        'standard': 'Standart',
+                        'winter': 'Kış',
+                        'spring': 'İlkbahar',
+                        'summer': 'Yaz',
+                        'autumn': 'Sonbahar',
+                        'ukraine': 'Ukrayna'
+                    };
+                    return themes[theme] || theme;
+                },
+
+                addQuestion() {
+                    this.quiz.questions.push({
+                        text: '',
+                        time_limit: 20,
+                        points: 1000,
+                        question_type: 'multiple_choice',
+                        image_url: '',
+                        options: [
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false },
+                            { text: '', is_correct: false }
+                        ]
+                    });
+                    this.currentIndex = this.quiz.questions.length - 1;
+
+                    // Allow UI update
+                    this.$nextTick(() => {
+                        const sidebar = document.querySelector('.overflow-y-auto');
+                        if (sidebar) sidebar.scrollTop = sidebar.scrollHeight;
+                    });
+                },
+
+                removeQuestion(index) {
+                    if (this.quiz.questions.length <= 1) return alert("En az bir soru olmalı!");
+                    if (confirm("Bu soruyu silmek istediğine emin misin?")) {
+                        this.quiz.questions.splice(index, 1);
+                        if (this.currentIndex >= this.quiz.questions.length) {
+                            this.currentIndex = Math.max(0, this.quiz.questions.length - 1);
+                        }
+                    }
+                },
+
+                changeType(type) {
+                    // Reset options based on type
+                    this.currentQuestion.question_type = type;
+
+                    if (type === 'true_false') {
+                        this.currentQuestion.options = [
+                            { text: 'True', is_correct: true },
+                            { text: 'False', is_correct: false }
+                        ];
+                    } else if (type === 'typing') {
+                        this.currentQuestion.options = [
+                            { text: '', is_correct: true }
+                        ];
+                    } else if (type === 'marked_answer') {
+                        this.currentQuestion.options = [
+                            { text: '', is_correct: true } // Coordinates stored in text
+                        ];
+                    } else {
+                        // Reset to 4 options if coming from non-standard
+                        if (this.currentQuestion.options.length !== 4) {
+                            this.currentQuestion.options = [
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false },
+                                { text: '', is_correct: false }
+                            ];
+                        }
+                    }
+                    this.showTypeSelector = false;
+                },
+
+                toggleCorrect(index) {
+                    // If multiple choice, toggle (allow single correct for now or multiple? Kahoot usually single for basic)
+                    // Let's allow single correct for simplicity unless we add "multi-select" toggle
+                    this.currentQuestion.options.forEach((o, i) => {
+                        o.is_correct = (i === index);
+                    });
+                },
+
+                setTrueFalse(index) {
+                    this.currentQuestion.options[0].is_correct = (index === 0);
+                    this.currentQuestion.options[1].is_correct = (index === 1);
+                },
+
+                setTheme(theme) {
+                    this.quiz.theme = theme;
+                    this.showThemeSelector = false;
+                },
+
+                setPin(event) {
+                    if (this.currentQuestion.question_type !== 'marked_answer') return;
+                    if (!this.currentQuestion.image_url) return;
+
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+                    this.currentQuestion.options[0].text = `${x.toFixed(2)},${y.toFixed(2)}`;
                 },
 
                 async uploadImage(event) {
@@ -798,143 +935,11 @@
                         }
                     } catch (error) {
                         console.error(error);
-                        alert("Bir hata oluştu");
+                        alert("Bir hata oluştu.");
                     }
-                },
-
-                getTypeName(type) {
-                    const map = {
-                        'multiple_choice': 'Quiz',
-                        'true_false': 'Doğru / Yanlış',
-                        'typing': 'Kısa Cevap',
-                        'marked_answer': 'İşaretli Cevap',
-                        'poll': 'Oylama'
-                    };
-                    return map[type] || 'Bilinmiyor';
-                },
-
-                getTypeIcon(type) {
-                    const map = {
-                        'multiple_choice': '💠',
-                        'true_false': '⚖️',
-                        'typing': '⌨️',
-                        'marked_answer': '📍',
-                        'poll': '📊'
-                    };
-                    return map[type] || '❓';
-                },
-
-                addQuestion() {
-                    this.quiz.questions.push({
-                        text: '',
-                        time_limit: 20,
-                        points: 1000,
-                        question_type: 'multiple_choice',
-                        image_url: '',
-                        options: [
-                            { text: '', is_correct: false },
-                            { text: '', is_correct: false },
-                            { text: '', is_correct: false },
-                            { text: '', is_correct: false }
-                        ]
-                    });
-                    this.currentIndex = this.quiz.questions.length - 1;
-                },
-
-                formatTime(seconds) {
-                    if (seconds < 60) return seconds + ' saniye';
-                    const minutes = Math.floor(seconds / 60);
-                    const remainingSeconds = seconds % 60;
-                    if (remainingSeconds === 0) return minutes + ' dakika';
-                    return minutes + ' dakika ' + remainingSeconds + ' saniye';
-                },
-
-                formatPoints(points) {
-                    if (points == 1000) return 'Standart';
-                    if (points == 2000) return 'İki Katı';
-                    if (points == 0) return 'Puan Yok';
-                    return points;
-                },
-
-                removeQuestion(index) {
-                    if (this.quiz.questions.length > 1) {
-                        this.quiz.questions.splice(index, 1);
-                        if (this.currentIndex >= this.quiz.questions.length) {
-                            this.currentIndex = Math.max(0, this.quiz.questions.length - 1);
-                        }
-                    } else {
-                        alert("En az bir soru kalmalı!");
-                    }
-                },
-
-                toggleCorrect(optIndex) {
-                    if (this.currentQuestion.question_type === 'poll') return; // Poll has no correct answer
-
-                    const wasCorrect = this.currentQuestion.options[optIndex].is_correct;
-                    // Enforce single correct for now
-                    this.currentQuestion.options.forEach(o => o.is_correct = false);
-                    if (!wasCorrect) {
-                        this.currentQuestion.options[optIndex].is_correct = true;
-                    }
-                },
-
-                setTrueFalse(index) {
-                    this.currentQuestion.options.forEach(o => o.is_correct = false);
-                    this.currentQuestion.options[index].is_correct = true;
-                    this.currentQuestion.options[0].text = "True";
-                    this.currentQuestion.options[1].text = "False";
-                },
-
-                setPin(event) {
-                    // Calculate percentage coordinates
-                    const rect = event.currentTarget.getBoundingClientRect();
-                    const x = ((event.clientX - rect.left) / rect.width) * 100;
-                    const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-                    // Store as "x,y" string in first option
-                    // We round to 2 decimals
-                    this.currentQuestion.options[0].text = `${x.toFixed(2)},${y.toFixed(2)}`;
-                    this.currentQuestion.options[0].is_correct = true;
-                },
-
-                changeType(type) {
-                    // Reset or preset options based on type
-                    this.currentQuestion.question_type = type;
-                    this.showTypeSelector = false;
-
-                    if (type === 'true_false') {
-                        this.currentQuestion.options[0].text = "True";
-                        this.currentQuestion.options[1].text = "False";
-                        this.currentQuestion.options[2].text = "";
-                        this.currentQuestion.options[3].text = "";
-                    } else if (type === 'typing') {
-                        // Use option 0 as the correct answer storage
-                        this.currentQuestion.options.forEach(o => o.is_correct = false);
-                        this.currentQuestion.options[0].is_correct = true; // Implicitly correct
-                    } else if (type === 'marked_answer') {
-                        this.currentQuestion.options[0].text = ""; // clear pin
-                        this.currentQuestion.options[0].is_correct = true;
-                    }
-                },
-
-                setTheme(themeName) {
-                    this.quiz.theme = themeName;
-                    this.showThemeSelector = false;
-                },
-
-                getThemeName(theme) {
-                    const map = {
-                        'standard': 'Standard',
-                        'winter': 'Winter',
-                        'spring': 'Spring',
-                        'summer': 'Summer',
-                        'autumn': 'Autumn',
-                        'ukraine': 'Ukraine'
-                    };
-                    return map[theme] || 'Standard';
                 }
-            }
-        }
+            }));
+        });
     </script>
 </body>
 
