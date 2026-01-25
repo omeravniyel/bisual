@@ -101,6 +101,12 @@ async def host_list_page(request: Request, db: Session = Depends(get_db)):
         import traceback
         return HTMLResponse(content=f"<h1>Error Loading Host Page</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
 
+@router.get("/quiz/new-selection", response_class=HTMLResponse)
+async def new_quiz_selection_page(request: Request):
+    user = request.cookies.get("user_session")
+    if not user: return RedirectResponse("/login")
+    return templates.TemplateResponse("new_quiz_selection.html", {"request": request})
+
 import socket
 
 def get_local_ip():

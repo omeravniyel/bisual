@@ -208,14 +208,13 @@
                 </div>
 
                 <!-- MAIN CREATE BUTTON -->
-                <button @click="console.log('Alpine Click'); showCreateSelection = true"
-                    onclick="alert('Debug: Button Clicked! If you see this, basic JS works.')"
+                <a href="/quiz/new-selection"
                     class="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20 cursor-pointer">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                     <span>Oluştur</span>
-                </button>
+                </a>
 
                 <a href="/logout"
                     class="p-2.5 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
@@ -232,13 +231,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
             <!-- Mobile Create Button -->
-            <button @click="showCreateSelection = true"
+            <a href="/quiz/new-selection"
                 class="md:hidden glass-card rounded-2xl p-4 flex items-center justify-center gap-2 text-indigo-400 border-dashed border-2 border-indigo-500/30 w-full cursor-pointer">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
                 <span class="font-bold">Yeni Yarışma Oluştur</span>
-            </button>
+            </a>
 
             {% for quiz in quizzes %}
             <div x-show="'{{ quiz.title|lower }}'.includes(search.toLowerCase())"
@@ -319,8 +318,8 @@
             {% endfor %}
 
             <!-- New Quiz Card -->
-            <button @click="showCreateSelection = true" x-show="!search"
-                class="group relative rounded-3xl border-2 border-dashed border-slate-700/50 hover:border-indigo-500/50 bg-slate-900/20 hover:bg-indigo-500/5 transition-all flex flex-col items-center justify-center text-center p-8 min-h-[320px] cursor-pointer overflow-hidden w-full">
+            <a href="/quiz/new-selection" x-show="!search"
+                class="group relative rounded-3xl border-2 border-dashed border-slate-700/50 hover:border-indigo-500/50 bg-slate-900/20 hover:bg-indigo-500/5 transition-all flex flex-col items-center justify-center text-center p-8 min-h-[320px] cursor-pointer overflow-hidden w-full block">
                 <div
                     class="w-20 h-20 rounded-full bg-slate-800/50 group-hover:bg-indigo-500 text-slate-500 flex items-center justify-center mb-6 transition-all border border-slate-700 group-hover:text-white">
                     <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -329,7 +328,7 @@
                 </div>
                 <h3 class="text-xl font-bold text-slate-300 group-hover:text-indigo-400 transition-colors">Yeni Yarışma
                 </h3>
-            </button>
+            </a>
         </div>
 
         <div class="h-24 flex items-center justify-center text-slate-600 text-xs">BiSual v3.1 Stable</div>
