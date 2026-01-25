@@ -123,6 +123,19 @@
                 class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded shadow-lg font-bold transition transform active:scale-95">
                 + Soru Ekle
             </button>
+
+            <div class="mt-4 flex gap-2">
+                <button @click="showAiModal = true"
+                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold text-xs"
+                    title="AI ile Ekle">
+                    ✨ AI
+                </button>
+                <button @click="showExcelModal = true"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-bold text-xs"
+                    title="Excel'den Ekle">
+                    📊 Excel
+                </button>
+            </div>
         </div>
 
         <!-- CENTER CANVAS -->
@@ -599,6 +612,91 @@
 
     </div>
 
+    <!-- AI SELECTION MODAL -->
+    <div x-show="showAiModal" style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" x-transition.opacity>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative flex flex-col max-h-[80vh]"
+            @click.away="showAiModal = false">
+            <h2 class="text-2xl font-black text-gray-800 mb-4">✨ AI Soru Üretici</h2>
+
+            <!-- Step 1: Input -->
+            <div x-show="!aiQuestions.length" class="space-y-4">
+                <input type="text" x-model="aiTopic" placeholder="Konu girin (örn: Fotosentez)"
+                    class="w-full border p-3 rounded-lg text-lg outline-none focus:border-purple-500">
+
+                <div class="flex gap-4">
+                    <input type="number" x-model="aiCount" placeholder="Sayı" class="w-20 border p-3 rounded-lg">
+                    <select x-model="aiDifficulty" class="border p-3 rounded-lg flex-1">
+                        <option value="easy">Kolay</option>
+                        <option value="medium">Orta</option>
+                        <option value="hard">Zor</option>
+                    </select>
+                </div>
+
+                <button @click="fetchAiQuestions()" :disabled="aiLoading"
+                    class="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                    <span x-show="!aiLoading">Soruları Getir</span>
+                    <span x-show="aiLoading" class="animate-pulse">Üretiliyor...</span>
+                </button>
+            </div>
+
+            <!-- Step 2: Selection -->
+            <div x-show="aiQuestions.length > 0" class="flex-1 overflow-hidden flex flex-col">
+                <div class="flex-1 overflow-y-auto space-y-2 mb-4 p-2 border rounded bg-gray-50">
+                    <template x-for="(q, idx) in aiQuestions" :key="idx">
+                        <div class="flex items-start gap-3 p-3 bg-white rounded shadow-sm cursor-pointer"
+                            @click="q.selected = !q.selected" :class="q.selected ? 'ring-2 ring-purple-500' : ''">
+                            <div class="mt-1 w-5 h-5 border-2 rounded flex items-center justify-center"
+                                :class="q.selected ? 'bg-purple-500 border-purple-500 text-white' : 'border-gray-300'">
+                                <span x-show="q.selected" class="text-xs">✓</span>
+                            </div>
+                            <div>
+                                <div class="font-bold text-gray-800" x-text="q.text"></div>
+                                <div class="text-xs text-gray-400 mt-1" x-text="q.options.find(o=>o.is_correct)?.text">
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="flex gap-3">
+                    <button @click="aiQuestions = []"
+                        class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded">Geri</button>
+                    <button @click="addSelectedAiQuestions()"
+                        class="flex-1 bg-purple-600 text-white font-bold py-2 rounded hover:bg-purple-700">
+                        Seçilenleri Ekle (<span x-text="aiQuestions.filter(q=>q.selected).length"></span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXCEL PARSE MODAL -->
+    <div x-show="showExcelModal" style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" x-transition.opacity>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative" @click.away="showExcelModal = false">
+            <h2 class="text-2xl font-black text-gray-800 mb-4">📊 Excel'den Ekle</h2>
+
+            <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-500 transition"
+                @click="$refs.excelParseInput.click()">
+                <div x-show="!excelLoading">
+                    <div class="text-4xl mb-2">📂</div>
+                    <div class="font-bold text-gray-500">Dosya Seç (.xlsx)</div>
+                </div>
+                <div x-show="excelLoading" class="text-emerald-500 font-bold animate-pulse">
+                    Yükleniyor...
+                </div>
+            </div>
+            <input type="file" x-ref="excelParseInput" class="hidden" accept=".xlsx" @change="parseExcel($event)">
+
+            <div class="mt-4 text-center">
+                <a href="/api/import/template" class="text-xs text-indigo-500 underline">Örnek Şablon indir</a>
+            </div>
+        </div>
+    </div>
+
+    </div>
+
     <!-- SETTINGS MODAL -->
     <div x-show="showSettings" style="display: none;"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" x-transition.opacity>
@@ -684,6 +782,14 @@
                 showTimeSelector: false,
                 showPointsSelector: false,
                 showThemeSelector: false,
+                showAiModal: false,
+                showExcelModal: false,
+                aiTopic: '',
+                aiCount: 5,
+                aiDifficulty: 'medium',
+                aiLoading: false,
+                aiQuestions: [],
+                excelLoading: false,
                 uploading: false,
                 quiz: {
                     title: '',
@@ -716,6 +822,95 @@
                     // Watch for quiz_json from server template
                     if (window.serverQuizData) {
                         this.quiz = window.serverQuizData;
+                    }
+                },
+
+                async fetchAiQuestions() {
+                    if (!this.aiTopic) return alert("Lütfen konu girin");
+                    this.aiLoading = true;
+                    try {
+                        const res = await fetch('/api/ai/preview', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': getCookie('csrf_token')
+                            },
+                            body: JSON.stringify({
+                                topic: this.aiTopic,
+                                count: parseInt(this.aiCount),
+                                difficulty: this.aiDifficulty
+                            })
+                        });
+                        const data = await res.json();
+                        if (Array.isArray(data)) {
+                            this.aiQuestions = data.map(q => ({ ...q, selected: true })); // Default select all
+                        } else {
+                            alert("Hata oluştu");
+                        }
+                    } catch (e) {
+                        alert("Sunucu hatası");
+                    } finally {
+                        this.aiLoading = false;
+                    }
+                },
+
+                addSelectedAiQuestions() {
+                    const selected = this.aiQuestions.filter(q => q.selected);
+                    if (selected.length === 0) return;
+
+                    // Clean up selected property before adding
+                    const toAdd = selected.map(({ selected, ...rest }) => rest);
+
+                    this.quiz.questions.push(...toAdd);
+
+                    // Reset
+                    this.aiQuestions = [];
+                    this.showAiModal = false;
+                    this.aiTopic = '';
+
+                    // Scroll to bottom
+                    this.$nextTick(() => {
+                        const sidebar = document.querySelector('.overflow-y-auto');
+                        if (sidebar) sidebar.scrollTop = sidebar.scrollHeight;
+                        this.currentIndex = this.quiz.questions.length - 1;
+                    });
+                },
+
+                async parseExcel(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    this.excelLoading = true;
+                    const fd = new FormData();
+                    fd.append('file', file);
+
+                    try {
+                        const res = await fetch('/api/import/parse', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-Token': getCookie('csrf_token') },
+                            body: fd
+                        });
+                        const data = await res.json();
+                        if (res.ok && Array.isArray(data)) {
+                            this.quiz.questions.push(...data);
+                            this.showExcelModal = false;
+
+                            this.$nextTick(() => {
+                                const sidebar = document.querySelector('.overflow-y-auto');
+                                if (sidebar) sidebar.scrollTop = sidebar.scrollHeight;
+                                this.currentIndex = this.quiz.questions.length - 1;
+                            });
+
+                            alert(`${data.length} soru eklendi!`);
+                        } else {
+                            alert("Hata: " + (data.detail || "Dosya okunamadı"));
+                        }
+                    } catch (e) {
+                        alert("Yükleme hatası");
+                    } finally {
+                        this.excelLoading = false;
+                        // Reset input
+                        event.target.value = '';
                     }
                 },
 

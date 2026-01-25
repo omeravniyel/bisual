@@ -16,6 +16,66 @@ router = APIRouter(
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 
+@router.post("/preview")
+async def generate_quiz_preview(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(models.User.get_current_active_user)
+):
+    """
+    Generates questions using AI and returns them as JSON (does not save to DB).
+    """
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not found.")
+
+    topic = payload.get("topic")
+    count = payload.get("count", 5)
+    difficulty = payload.get("difficulty", "medium")
+
+    # Limits
+    if count > 20: count = 20
+    if count < 1: count = 5
+
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+
+    prompt = f"""
+    Create {count} quiz questions about "{topic}". 
+    Difficulty: {difficulty}.
+    Language: Turkish (Türkçe).
+    
+    Return ONLY a raw JSON object (list of questions).
+    Structure:
+    {{
+        "questions": [
+            {{
+                "text": "Question text?",
+                "limit": 20,
+                "points": 1000,
+                "options": [
+                    {{ "text": "A", "is_correct": true }},
+                    {{ "text": "B", "is_correct": false }},
+                    {{ "text": "C", "is_correct": false }},
+                    {{ "text": "D", "is_correct": false }}
+                ]
+            }}
+        ]
+    }}
+    Randomize correct option position.
+    """
+
+    try:
+        response = model.generate_content(prompt)
+        text_resp = response.text.strip()
+        if text_resp.startswith("```"):
+            text_resp = text_resp.replace("```json", "").replace("```", "")
+        
+        data = json.loads(text_resp)
+        return data.get("questions", [])
+
+    except Exception as e:
+        print(f"AI Preview Error: {e}")
+        raise HTTPException(status_code=500, detail="Yapay zeka soru üretemedi.")
+
 @router.post("/generate")
 async def generate_quiz_ai(
     payload: dict = Body(...),

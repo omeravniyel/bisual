@@ -59,6 +59,67 @@ def get_template():
         headers={"Content-Disposition": "attachment; filename=quiz_sablon.xlsx"}
     )
 
+@router.post("/parse")
+async def parse_quiz_excel(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(models.User.get_current_active_user)
+):
+    """Parses Excel and returns list of questions (no DB save)."""
+    if not file.filename.endswith('.xlsx'):
+        raise HTTPException(status_code=400, detail="Sadece .xlsx dosyaları kabul edilir.")
+
+    try:
+        contents = await file.read()
+        wb = openpyxl.load_workbook(filename=BytesIO(contents), data_only=True)
+        ws = wb.active
+        
+        header_row = [cell.value for cell in ws[1]]
+        if not header_row or header_row[0] != TEMPLATE_HEADERS[0]:
+            raise HTTPException(status_code=400, detail="Geçersiz şablon.")
+
+        questions = []
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row[0]: continue
+            
+            q_text = str(row[0] or "").strip()
+            time_limit = int(row[1] or 20)
+            points = int(row[2] or 1000)
+            
+            opt_a = str(row[3] or "").strip()
+            opt_b = str(row[4] or "").strip()
+            opt_c = str(row[5] or "").strip()
+            opt_d = str(row[6] or "").strip()
+            
+            correct_char = str(row[7] or "").strip().upper()
+            mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
+            correct_idx = mapping.get(correct_char, -1)
+            
+            if correct_idx == -1 and (opt_a or opt_b):
+                 # For preview/parse, we can be slightly more lenient or just mark none, 
+                 # but let's conform to the strict rule we just added or handle it on frontend.
+                 # Let's return -1 and let frontend warn if needed, or just raise here too.
+                 pass 
+
+            questions.append({
+                "text": q_text,
+                "time_limit": time_limit,
+                "points": points,
+                "question_type": "multiple_choice",
+                "image_url": None,
+                "options": [
+                    {"text": opt_a, "is_correct": correct_idx == 0},
+                    {"text": opt_b, "is_correct": correct_idx == 1},
+                    {"text": opt_c, "is_correct": correct_idx == 2},
+                    {"text": opt_d, "is_correct": correct_idx == 3},
+                ]
+            })
+            
+        return questions
+
+    except Exception as e:
+        print(f"Parse Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Dosya okunamadı: {str(e)}")
+
 @router.post("/upload")
 async def import_quiz(
     file: UploadFile = File(...),
