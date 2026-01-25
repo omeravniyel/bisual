@@ -204,6 +204,55 @@ async def update_quiz(quiz_id: int, quiz_update: schemas.QuizCreate, request: Re
         
     return db_quiz
 
+@router.post("/quizzes/duplicate/{quiz_id}")
+async def duplicate_quiz(quiz_id: int, request: Request, db: Session = Depends(get_db)):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: return RedirectResponse("/login")
+    
+    user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not user: return RedirectResponse("/login")
+    
+    original_quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id, models.Quiz.user_id == user.id).first()
+    if not original_quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+        
+    # 1. Copy Quiz
+    new_quiz = models.Quiz(
+        title=f"{original_quiz.title} (Kopya)",
+        description=original_quiz.description,
+        theme=original_quiz.theme,
+        settings=original_quiz.settings,
+        user_id=user.id
+    )
+    db.add(new_quiz)
+    db.commit()
+    db.refresh(new_quiz)
+    
+    # 2. Copy Questions & Options
+    for q in original_quiz.questions:
+        new_q = models.Question(
+            quiz_id=new_quiz.id,
+            text=q.text,
+            time_limit=q.time_limit,
+            points=q.points,
+            question_type=q.question_type,
+            image_url=q.image_url
+        )
+        db.add(new_q)
+        db.commit()
+        db.refresh(new_q)
+        
+        for opt in q.options:
+            new_opt = models.Option(
+                question_id=new_q.id,
+                text=opt.text,
+                is_correct=opt.is_correct
+            )
+            db.add(new_opt)
+        db.commit()
+        
+    return RedirectResponse(url="/host", status_code=status.HTTP_303_SEE_OTHER)
+
 @router.post("/quizzes/delete/{quiz_id}")
 async def delete_quiz(quiz_id: int, request: Request, db: Session = Depends(get_db)):
     user_cookie = request.cookies.get("user_session")
