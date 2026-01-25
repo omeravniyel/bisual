@@ -190,7 +190,18 @@ async def update_quiz(quiz_id: int, quiz_update: schemas.QuizCreate, request: Re
 
     # Replace Questions (Simplest strategy for complex nested edits)
     # Delete existing questions (adjust cascade deletion in models covers options)
-    db.query(models.Question).filter(models.Question.quiz_id == db_quiz.id).delete()
+    
+    # SQLAlchemy bulk delete bypasses ORM cascade, so we must delete options manually or use a loop
+    # 1. Get all question IDs for this quiz
+    question_ids = db.query(models.Question.id).filter(models.Question.quiz_id == db_quiz.id).all()
+    question_ids = [q[0] for q in question_ids]
+    
+    # 2. Delete options for these questions
+    if question_ids:
+        db.query(models.Option).filter(models.Option.question_id.in_(question_ids)).delete(synchronize_session=False)
+    
+    # 3. Delete questions
+    db.query(models.Question).filter(models.Question.quiz_id == db_quiz.id).delete(synchronize_session=False)
     
     # Add new questions
     for q in quiz_update.questions:

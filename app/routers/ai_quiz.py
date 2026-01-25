@@ -73,7 +73,7 @@ async def generate_quiz_preview(
 
     try:
         # Try models in order of preference: Flash (Fast/Cheap), then Pro (Stable)
-        models_to_try = ['gemini-1.5-flash', 'gemini-pro']
+        models_to_try = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-pro-latest']
         
         response = None
         last_error = None
@@ -89,13 +89,14 @@ async def generate_quiz_preview(
                 continue
                 
         if not response and last_error:
-        # Debugging: List available models
+            # Debugging: List available models
             try:
                 available = [m.name for m in genai.list_models()]
                 debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
             except Exception as list_exc:
                 debug_msg = f"Model listesi alınamadı: {list_exc}"
 
+            print(f"All models failed. {debug_msg}")
             raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
 
         text_resp = response.text.strip()
