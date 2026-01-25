@@ -82,7 +82,7 @@ async def generate_quiz_preview(
 
     except Exception as e:
         print(f"AI Preview Error: {e}")
-        raise HTTPException(status_code=500, detail="Yapay zeka soru üretemedi.")
+        raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(e)}")
 
 @router.post("/generate")
 async def generate_quiz_ai(
@@ -192,4 +192,4 @@ async def generate_quiz_ai(
 
     except Exception as e:
         print(f"AI Generation Error: {e}")
-        raise HTTPException(status_code=500, detail="Yapay zeka servisi yanıt vermedi veya hata oluştu.")
+        raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(e)}")
