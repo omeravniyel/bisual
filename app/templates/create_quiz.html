@@ -16,42 +16,48 @@
         }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-
-        .slide-card {
-            transition: all 0.2s;
-        }
-
-        .slide-card.active {
-            border-color: #46178f;
-            box-shadow: 0 0 0 2px #46178f;
-            background-color: #f0f4ff;
-        }
-
-        .answer-input-container {
-            transition: all 0.2s;
-        }
-
-        .answer-input-container:focus-within {
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
     </style>
+    <script>
+        // Inject quiz data if in edit mode
+        window.serverQuizData = {{ quiz_json | tojson | safe if quiz_json else 'null' }};
+    </script>
+</head>
+::-webkit-scrollbar {
+width: 8px;
+}
+
+::-webkit-scrollbar-track {
+background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+background: #c1c1c1;
+border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+background: #a8a8a8;
+}
+
+.slide-card {
+transition: all 0.2s;
+}
+
+.slide-card.active {
+border-color: #46178f;
+box-shadow: 0 0 0 2px #46178f;
+background-color: #f0f4ff;
+}
+
+.answer-input-container {
+transition: all 0.2s;
+}
+
+.answer-input-container:focus-within {
+transform: scale(1.02);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+</style>
 </head>
 
 <body class="h-screen flex flex-col" x-data="quizEditor()">
@@ -665,7 +671,7 @@
     </div>
 
     <script>
-        function quizEditor() {
+        function quizEditor(initialData = null) {
             return {
                 currentIndex: 0,
                 showSuccess: false,
@@ -674,7 +680,8 @@
                 showTimeSelector: false,
                 showPointsSelector: false,
                 showThemeSelector: false,
-                quiz: {
+                uploading: false,
+                quiz: initialData || {
                     title: '',
                     description: '',
                     theme: 'standard',
@@ -685,7 +692,6 @@
                         music_theme: 'energetic'
                     },
                     questions: [
-                        // Default first question
                         {
                             text: '',
                             time_limit: 20,
@@ -702,8 +708,68 @@
                     ]
                 },
 
+                init() {
+                    // Watch for quiz_json from server template
+                    if (window.serverQuizData) {
+                        this.quiz = window.serverQuizData;
+                    }
+                },
+
                 get currentQuestion() {
                     return this.quiz.questions[this.currentIndex];
+                },
+
+                async uploadImage(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        this.uploading = true;
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+                        this.currentQuestion.image_url = data.url;
+                    } catch (error) {
+                        alert('Resim yüklenirken hata oluştu');
+                    } finally {
+                        this.uploading = false;
+                    }
+                },
+
+                async saveQuiz() {
+                    if (!this.quiz.title) {
+                        alert("Lütfen bir başlık girin!");
+                        return;
+                    }
+
+                    try {
+                        const isEdit = !!this.quiz.id;
+                        const url = isEdit ? `/api/quizzes/${this.quiz.id}` : '/api/quizzes/';
+                        const method = isEdit ? 'PUT' : 'POST';
+
+                        const response = await fetch(url, {
+                            method: method,
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(this.quiz)
+                        });
+
+                        if (response.ok) {
+                            this.showSuccess = true;
+                        } else {
+                            const err = await response.json();
+                            alert("Hata: " + (err.detail || "Kaydedilemedi"));
+                        }
+                    } catch (error) {
+                        console.error(error);
+                        alert("Bir hata oluştu");
+                    }
                 },
 
                 getTypeName(type) {
@@ -836,99 +902,76 @@
                         'ukraine': 'Ukraine'
                     };
                     return map[theme] || 'Standard';
-                },
-
-                async uploadImage(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    try {
-                        // Optimistic visual update (optional, but good for UX)
-                        /* const reader = new FileReader();
-                        reader.onload = (e) => this.currentQuestion.image_url = e.target.result;
-                        reader.readAsDataURL(file); */
-
-                        // Upload to server
-                        const response = await fetch('/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            this.currentQuestion.image_url = data.url;
-                        } else {
-                            alert('Yükleme başarısız!');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Bir hata oluştu.');
-                    }
-                },
-
-                async saveQuiz() {
-                    if (!this.quiz.title) return alert('Lütfen yarışma başlığı girin.');
-
-                    // Validation
-                    for (let i = 0; i < this.quiz.questions.length; i++) {
-                        const q = this.quiz.questions[i];
-
-                        if (!q.text) {
-                            this.currentIndex = i;
-                            return alert((i + 1) + '. sorunun metnini girmediniz.');
-                        }
-
-                        if (q.question_type === 'poll') continue; // Polls don't need correct answer
-
-                        // For typing, check if text is entered
-                        if (q.question_type === 'typing') {
-                            if (!q.options[0].text) {
-                                this.currentIndex = i;
-                                return alert((i + 1) + '. soru için doğru cevabı yazmadınız.');
-                            }
-                        }
-                        // For selection types
-                        else {
-                            if (!q.options.some(o => o.is_correct) && q.question_type !== 'marked_answer') {
-                                this.currentIndex = i;
-                                return alert((i + 1) + '. soruda doğru cevabı seçmediniz!');
-                            }
-                            if (q.question_type === 'marked_answer') {
-                                if (!q.image_url) {
-                                    this.currentIndex = i;
-                                    return alert((i + 1) + '. soru için (İşaretli Cevap) bir görsel eklemelisiniz.');
-                                }
-                                if (!q.options[0].text) {
-                                    this.currentIndex = i;
-                                    return alert((i + 1) + '. soru için görsel üzerine tıklayarak doğru yeri işaretleyin.');
-                                }
-                            }
-                        }
-                    }
-
-                    try {
-                        const response = await fetch('/api/quizzes/', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(this.quiz)
-                        });
-
-                        if (response.ok) {
-                            this.showSuccess = true;
-                        } else {
-                            alert('Bir hata oluştu.');
-                        }
-                    } catch (e) {
-                        console.error(e);
-                        alert('Sunucuya bağlanılamadı.');
-                    }
                 }
             }
         }
-    </script>
+    </script> reader.onload = (e) => this.currentQuestion.image_url = e.target.result;
+    reader.readAsDataURL(file); */
+
+    // Upload to server
+    const response = await fetch('/upload', {
+    method: 'POST',
+    body: formData
+    });
+
+    if (response.ok) {
+    const data = await response.json();
+    this.currentQuestion.image_url = data.url;
+    } else {
+    alert('Yükleme başarısız!');
+    }
+    } catch (error) {
+    console.error('Error:', error);
+    alert('Bir hata oluştu.');
+    }
+    },
+
+    async saveQuiz() {
+    if (!this.quiz.title) return alert('Lütfen yarışma başlığı girin.');
+
+    // Validation
+    for (let i = 0; i < this.quiz.questions.length; i++) { const q=this.quiz.questions[i]; if (!q.text) {
+        this.currentIndex=i; return alert((i + 1) + '. sorunun metnini girmediniz.' ); } if (q.question_type==='poll' )
+        continue; // Polls don't need correct answer // For typing, check if text is entered if
+        (q.question_type==='typing' ) { if (!q.options[0].text) { this.currentIndex=i; return alert((i + 1)
+        + '. soru için doğru cevabı yazmadınız.' ); } } // For selection types else { if (!q.options.some(o=>
+        o.is_correct) && q.question_type !== 'marked_answer') {
+        this.currentIndex = i;
+        return alert((i + 1) + '. soruda doğru cevabı seçmediniz!');
+        }
+        if (q.question_type === 'marked_answer') {
+        if (!q.image_url) {
+        this.currentIndex = i;
+        return alert((i + 1) + '. soru için (İşaretli Cevap) bir görsel eklemelisiniz.');
+        }
+        if (!q.options[0].text) {
+        this.currentIndex = i;
+        return alert((i + 1) + '. soru için görsel üzerine tıklayarak doğru yeri işaretleyin.');
+        }
+        }
+        }
+        }
+
+        try {
+        const response = await fetch('/api/quizzes/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.quiz)
+        });
+
+        if (response.ok) {
+        this.showSuccess = true;
+        } else {
+        alert('Bir hata oluştu.');
+        }
+        } catch (e) {
+        console.error(e);
+        alert('Sunucuya bağlanılamadı.');
+        }
+        }
+        }
+        }
+        </script>
 </body>
 
 </html>

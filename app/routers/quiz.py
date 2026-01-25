@@ -120,6 +120,90 @@ async def host_lobby_page(request: Request, quiz_id: int):
         "host_ip": host_ip,
         "port": port
     })
+@router.get("/quizzes/{quiz_id}/edit", response_class=HTMLResponse)
+async def edit_quiz_page(request: Request, quiz_id: int, db: Session = Depends(get_db)):
+    user = request.cookies.get("user_session")
+    if not user: return RedirectResponse("/login")
+    
+    user_obj = db.query(models.User).filter(models.User.username == user).first()
+    quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id, models.Quiz.user_id == user_obj.id).first()
+    
+    if not quiz:
+        return RedirectResponse("/host")
+
+    # Serialize Quiz Data for Frontend
+    quiz_data = {
+        "id": quiz.id,
+        "title": quiz.title,
+        "description": quiz.description,
+        "theme": quiz.theme,
+        "settings": quiz.settings or {},
+        "questions": []
+    }
+    
+    for q in quiz.questions:
+        q_data = {
+            "text": q.text,
+            "time_limit": q.time_limit,
+            "points": q.points,
+            "question_type": q.question_type,
+            "image_url": q.image_url,
+            "options": [{"text": opt.text, "is_correct": opt.is_correct} for opt in q.options]
+        }
+        quiz_data["questions"].append(q_data)
+        
+    return templates.TemplateResponse("create_quiz.html", {
+        "request": request, 
+        "title": f"Düzenle: {quiz.title}",
+        "quiz_json": quiz_data
+    })
+
+@router.put("/quizzes/{quiz_id}", response_model=schemas.Quiz)
+async def update_quiz(quiz_id: int, quiz_update: schemas.QuizCreate, request: Request, db: Session = Depends(get_db)):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    db_quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id, models.Quiz.user_id == user.id).first()
+    
+    if not db_quiz:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+        
+    # Update Basic Info
+    db_quiz.title = quiz_update.title
+    db_quiz.description = quiz_update.description
+    db_quiz.theme = quiz_update.theme
+    db_quiz.settings = quiz_update.settings  # assuming schema supports this now or loose check
+
+    # Replace Questions (Simplest strategy for complex nested edits)
+    # Delete existing questions (adjust cascade deletion in models covers options)
+    db.query(models.Question).filter(models.Question.quiz_id == db_quiz.id).delete()
+    
+    # Add new questions
+    for q in quiz_update.questions:
+        db_question = models.Question(
+            quiz_id=db_quiz.id,
+            text=q.text,
+            time_limit=q.time_limit,
+            points=q.points,
+            question_type=q.question_type,
+            image_url=q.image_url
+        )
+        db.add(db_question)
+        db.commit()
+        db.refresh(db_question)
+        
+        for opt in q.options:
+            db_option = models.Option(
+                question_id=db_question.id,
+                text=opt.text,
+                is_correct=opt.is_correct
+            )
+            db.add(db_option)
+        db.commit()
+        
+    return db_quiz
+
 @router.post("/quizzes/delete/{quiz_id}")
 async def delete_quiz(quiz_id: int, request: Request, db: Session = Depends(get_db)):
     user_cookie = request.cookies.get("user_session")
