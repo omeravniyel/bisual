@@ -93,6 +93,7 @@ app.mount("/static/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # Include Routers
 app.include_router(auth.router, tags=["auth"])
 app.include_router(quiz.router, prefix="/api", tags=["quiz"])
+app.include_router(import_quiz.router, prefix="/api", tags=["import"])
 app.include_router(quiz.router, tags=["quiz_ui"])
 app.include_router(game.router, tags=["game"])
 

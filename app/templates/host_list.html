@@ -111,6 +111,11 @@
           previewQuiz: null,
           previewLoading: false,
           
+          
+          // Excel Upload State
+          showUpload: false,
+          uploading: false,
+          
           async openPreview(id) {
               this.showPreview = true;
               this.previewLoading = true;
@@ -128,6 +133,35 @@
                   this.showPreview = false;
               } finally {
                   this.previewLoading = false;
+              }
+          },
+
+          async uploadExcel(event) {
+              const file = event.target.files[0];
+              if (!file) return;
+              
+              const formData = new FormData();
+              formData.append('file', file);
+              
+              this.uploading = true;
+              try {
+                  const res = await fetch('/api/import/upload', {
+                      method: 'POST',
+                      body: formData
+                  });
+                  const data = await res.json();
+                  
+                  if (res.ok) {
+                      alert('Yarışma başarıyla oluşturuldu! (' + data.questions_count + ' soru)');
+                      window.location.reload();
+                  } else {
+                      alert('Hata: ' + data.detail);
+                  }
+              } catch (e) {
+                  alert('Sunucu hatası oluştu.');
+              } finally {
+                  this.uploading = false;
+                  this.showUpload = false;
               }
           }
       }" x-cloak>
@@ -170,6 +204,15 @@
                 </div>
 
                 <!-- Create Button -->
+                <button @click="showUpload = true"
+                    class="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-emerald-600/20 transition-all hover:scale-105 active:scale-95 border border-emerald-400/20">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Excel Yükle</span>
+                </button>
+
                 <a href="/create"
                     class="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -437,6 +480,56 @@
                     </a>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- Upload Modal -->
+    <div x-show="showUpload" style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        @click.self="showUpload = false" x-transition.opacity>
+
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative flex flex-col gap-6"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+
+            <button @click="showUpload = false"
+                class="absolute top-4 right-4 text-slate-500 hover:text-white transition text-2xl">×</button>
+
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-2">Excel İle Yarışma Yükle</h2>
+                <p class="text-slate-400 text-sm">Hazırladığınız Excel dosyasını yükleyerek hızlıca yarışma oluşturun.
+                    <a href="/api/import/template" download
+                        class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">Şablonu İndir</a>
+                </p>
+            </div>
+
+            <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 bg-slate-800/30 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition group"
+                @click="$refs.excelInput.click()">
+
+                <input type="file" x-ref="excelInput" class="hidden" accept=".xlsx" @change="uploadExcel($event)">
+
+                <div
+                    class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+
+                <p x-show="!uploading" class="font-bold text-slate-300 group-hover:text-white transition">Dosya Seç veya
+                    Sürükle</p>
+                <p x-show="uploading" class="font-bold text-indigo-400 animate-pulse">Yükleniyor...</p>
+                <p class="text-xs text-slate-500 mt-2">Sadece .xlsx formatı</p>
+            </div>
+
+            <div class="bg-indigo-900/20 border border-indigo-500/20 rounded-lg p-4 flex gap-3 items-start">
+                <div class="text-indigo-400 mt-0.5">ℹ️</div>
+                <div class="text-xs text-indigo-300/80 leading-relaxed">
+                    İpucu: Şablondaki sütun isimlerini değiştirmeyin. "Doğru Cevap" sütununa sadece A, B, C veya D
+                    yazın. Süre saniye cinsindendir.
+                </div>
+            </div>
+
         </div>
     </div>
 </body>
