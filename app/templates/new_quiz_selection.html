@@ -16,6 +16,13 @@
             color: white;
         }
     </style>
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+    </script>
 </head>
 
 <body class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -119,7 +126,10 @@
                     loading = true;
                     fetch('/api/ai/generate', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': getCookie('csrf_token')
+                        },
                         body: JSON.stringify({topic: aiTopic, count: parseInt(aiCount), difficulty: aiDifficulty})
                     }).then(res => res.json()).then(data => {
                         if(data.id || data.status === 'success') { window.location.href = '/host'; }
@@ -151,7 +161,11 @@
                     uploading = true;
                     let fd = new FormData();
                     fd.append('file', $event.target.files[0]);
-                    fetch('/api/import/upload', {method:'POST', body:fd})
+                    fetch('/api/import/upload', {
+                        method:'POST', 
+                        headers: { 'X-CSRF-Token': getCookie('csrf_token') },
+                        body:fd
+                    })
                     .then(r=>r.json())
                     .then(d=>{
                         if(d.questions_count){ alert('Tamamlandı!'); window.location.href='/host'; }

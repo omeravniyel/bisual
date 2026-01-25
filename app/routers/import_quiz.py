@@ -115,6 +115,9 @@ async def import_quiz(
             mapping = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
             correct_idx = mapping.get(correct_char, -1) # -1 if invalid
             
+            if correct_idx == -1 and (opt_a or opt_b):
+                 raise HTTPException(status_code=400, detail=f"Satır {row[0]}: Geçersiz doğru cevap şıkkı '{correct_char}'. Lütfen sadece A, B, C veya D giriniz.")
+
             options_list = [
                 {"text": opt_a, "is_correct": correct_idx == 0},
                 {"text": opt_b, "is_correct": correct_idx == 1},
@@ -122,13 +125,6 @@ async def import_quiz(
                 {"text": opt_d, "is_correct": correct_idx == 3},
             ]
             
-            # validation: correct answer must exist if options exist
-            if correct_idx == -1 and (opt_a or opt_b):
-                 # default to A if logic fails but we want to save partial? 
-                 # adhere to strict: skip question or raise?
-                 # Let's default to no correct answer marked (user can fix in editor)
-                 pass
-
             question = models.Question(
                 quiz_id=new_quiz.id,
                 text=q_text,

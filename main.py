@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from app.database import engine, SessionLocal
 from app.routers import quiz, game, auth, import_quiz, ai_quiz
+from app.core.csrf import CSRFMiddleware, get_csrf_token
 from app import models
 import shutil
 import uuid
@@ -15,6 +16,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI(title="BiSual - Interactive Quiz Platform")
+
+# Add CSRF Middleware
+app.add_middleware(CSRFMiddleware)
 
 # Helper for PyInstaller path
 def resource_path(relative_path):
@@ -113,6 +117,12 @@ def create_initial_user():
 
 # Templates
 templates = Jinja2Templates(directory=resource_path("app/templates"))
+
+# Inject CSRF token function into templates
+def csrf_token_func(request: Request):
+    return get_csrf_token(request)
+
+templates.env.globals['csrf_token'] = csrf_token_func
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
