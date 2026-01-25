@@ -89,7 +89,14 @@ async def host_list_page(request: Request, db: Session = Depends(get_db)):
             return response
             
         quizzes = db.query(models.Quiz).filter(models.Quiz.user_id == user_obj.id).all()
-        return templates.TemplateResponse("host_list.html", {"request": request, "quizzes": quizzes})
+        # Calculate total Stats
+        total_questions = sum(len(q.questions) for q in quizzes)
+        
+        return templates.TemplateResponse("host_list.html", {
+            "request": request, 
+            "quizzes": quizzes,
+            "total_questions": total_questions
+        })
     except Exception as e:
         import traceback
         return HTMLResponse(content=f"<h1>Error Loading Host Page</h1><pre>{traceback.format_exc()}</pre>", status_code=500)
