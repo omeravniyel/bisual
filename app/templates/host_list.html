@@ -104,7 +104,7 @@
     </style>
 </head>
 
-<body class="selection:bg-indigo-500/30 selection:text-indigo-200" x-data="hostDashboard" x-cloak>
+<body class="selection:bg-indigo-500/30 selection:text-indigo-200" x-data="getHostData()" x-cloak>
 
     <div class="max-w-[1400px] mx-auto p-6 md:p-10 space-y-10">
 
@@ -599,62 +599,61 @@
         </div>
     </div>
     <script>
-            < script >
-            document.addEventListener('alpine:init', () => {
-                console.log('BiSual Host Dashboard: Initializing...');
-                Alpine.data('hostDashboard', () => ({
-                    search: '',
-                    hasQuizzes: {{ 'true' if quizzes else 'false' }},
-                showPreview: false,
-                previewQuiz: null,
+        function getHostData() {
+            return {
+                search: '',
+                hasQuizzes: {{ 'true' if quizzes else 'false' }
+        },
+        showPreview: false,
+            previewQuiz: null,
                 previewLoading: false,
 
-                // State
-                showCreateSelection: false,
+                    // State
+                    showCreateSelection: false,
 
-                // Excel Upload State
-                showUpload: false,
-                uploading: false,
+                        // Excel Upload State
+                        showUpload: false,
+                            uploading: false,
 
-                // AI Generator State
-                showAiModal: false,
-                aiLoading: false,
-                aiTopic: '',
-                aiCount: 10,
-                aiDifficulty: 'medium',
+                                // AI Generator State
+                                showAiModal: false,
+                                    aiLoading: false,
+                                        aiTopic: '',
+                                            aiCount: 10,
+                                                aiDifficulty: 'medium',
 
-                init() {
-                console.log('BiSual Host Dashboard: Mounted!');
-            },
+                                                    init() {
+            console.log('BiSual Host Dashboard: Mounted!');
+        },
 
                 async createAiQuiz() {
-                if(!this.aiTopic) return alert('Lütfen bir konu girin.');
-        this.aiLoading = true;
-        try {
-            const res = await fetch('/api/ai/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topic: this.aiTopic,
-                    count: parseInt(this.aiCount),
-                    difficulty: this.aiDifficulty
-                })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.');
-                window.location.reload();
-            } else {
-                alert('Hata: ' + (data.detail || 'Bilinmeyen hata'));
+            if (!this.aiTopic) return alert('Lütfen bir konu girin.');
+            this.aiLoading = true;
+            try {
+                const res = await fetch('/api/ai/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: this.aiTopic,
+                        count: parseInt(this.aiCount),
+                        difficulty: this.aiDifficulty
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.');
+                    window.location.reload();
+                } else {
+                    alert('Hata: ' + (data.detail || 'Bilinmeyen hata'));
+                }
+            } catch (e) {
+                alert('Sunucu hatası.');
+                console.error(e);
+            } finally {
+                this.aiLoading = false;
+                this.showAiModal = false;
             }
-        } catch (e) {
-            alert('Sunucu hatası.');
-            console.error(e);
-        } finally {
-            this.aiLoading = false;
-            this.showAiModal = false;
-        }
-                },
+        },
 
                 async openPreview(id) {
             this.showPreview = true;
@@ -701,9 +700,9 @@
                 this.showUpload = false;
             }
         }
-            }));
-        });
+            }
+        }
     </script>
 </body>
 
-</html>
+</html>```
