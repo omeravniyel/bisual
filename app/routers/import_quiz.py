@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -61,12 +61,20 @@ def get_template():
 
 @router.post("/parse")
 async def parse_quiz_excel(
+    request: Request,
     file: UploadFile = File(...),
-    current_user: models.User = Depends(models.User.get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """Parses Excel and returns list of questions (no DB save)."""
     if not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="Sadece .xlsx dosyaları kabul edilir.")
+        
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Just verify existence
+    user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not user: raise HTTPException(status_code=401, detail="User not found")
 
     try:
         contents = await file.read()
@@ -122,14 +130,20 @@ async def parse_quiz_excel(
 
 @router.post("/upload")
 async def import_quiz(
+    request: Request,
     file: UploadFile = File(...),
     title: str = "Excel İle Yüklenen Yarışma",
-    current_user: models.User = Depends(models.User.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Parses an uploaded Excel file and creates a quiz."""
     if not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="Sadece .xlsx dosyaları kabul edilir.")
+
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    current_user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not current_user: raise HTTPException(status_code=401, detail="User not found")
 
     try:
         contents = await file.read()

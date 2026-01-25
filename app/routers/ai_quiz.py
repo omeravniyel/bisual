@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
@@ -18,14 +18,22 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 
 @router.post("/preview")
 async def generate_quiz_preview(
+    request: Request,
     payload: dict = Body(...),
-    current_user: models.User = Depends(models.User.get_current_active_user)
+    db: Session = Depends(get_db)
 ):
     """
     Generates questions using AI and returns them as JSON (does not save to DB).
     """
     if not API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not found.")
+        
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # We don't strictly need user object for preview, just auth check, but good practice
+    user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not user: raise HTTPException(status_code=401, detail="User not found")
 
     topic = payload.get("topic")
     count = payload.get("count", 5)
@@ -78,8 +86,8 @@ async def generate_quiz_preview(
 
 @router.post("/generate")
 async def generate_quiz_ai(
+    request: Request,
     payload: dict = Body(...),
-    current_user: models.User = Depends(models.User.get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -88,6 +96,12 @@ async def generate_quiz_ai(
     """
     if not API_KEY:
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not found in environment.")
+
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    current_user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not current_user: raise HTTPException(status_code=401, detail="User not found")
 
     topic = payload.get("topic")
     count = payload.get("count", 5)
