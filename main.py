@@ -59,6 +59,11 @@ def run_migrations():
 
 run_migrations()
 
+# Version Check Route
+@app.get("/version")
+def get_version():
+    return {"version": "1.0.0"}
+
 # Manual Fix Route
 @app.get("/fix-db")
 def manual_fix_db():
