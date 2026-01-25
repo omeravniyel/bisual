@@ -190,26 +190,27 @@ async def generate_quiz_ai(
     Randomize correct option position.
     """
 
-    for model_name in models_to_try:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            break # Success
-        except Exception as e:
-            print(f"Model {model_name} failed: {e}")
-            last_error = e
-            continue
+    try:
+        for model_name in models_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                break # Success
+            except Exception as e:
+                print(f"Model {model_name} failed: {e}")
+                last_error = e
+                continue
             
-    if not response and last_error:
-        # Debugging: List available models to see what IS supported
-        try:
-            available = [m.name for m in genai.list_models()]
-            debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
-        except Exception as list_exc:
-            debug_msg = f"Model listesi alınamadı: {list_exc}"
-            
-        print(f"All models failed. {debug_msg}")
-        raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
+        if not response and last_error:
+            # Debugging: List available models to see what IS supported
+            try:
+                available = [m.name for m in genai.list_models()]
+                debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
+            except Exception as list_exc:
+                debug_msg = f"Model listesi alınamadı: {list_exc}"
+                
+            print(f"All models failed. {debug_msg}")
+            raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
 
         text_resp = response.text.strip()
         
