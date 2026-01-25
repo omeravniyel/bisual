@@ -89,7 +89,14 @@ async def generate_quiz_preview(
                 continue
                 
         if not response and last_error:
-            raise last_error
+        # Debugging: List available models
+            try:
+                available = [m.name for m in genai.list_models()]
+                debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
+            except Exception as list_exc:
+                debug_msg = f"Model listesi alınamadı: {list_exc}"
+
+            raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
 
         text_resp = response.text.strip()
         if text_resp.startswith("```"):
@@ -180,7 +187,15 @@ async def generate_quiz_ai(
                 continue
                 
         if not response and last_error:
-            raise last_error # Re-raise if all failed
+        # Debugging: List available models to see what IS supported
+            try:
+                available = [m.name for m in genai.list_models()]
+                debug_msg = f"Erişilebilir modeller: {', '.join(available)}"
+            except Exception as list_exc:
+                debug_msg = f"Model listesi alınamadı: {list_exc}"
+                
+            print(f"All models failed. {debug_msg}")
+            raise HTTPException(status_code=500, detail=f"Yapay zeka hatası: {str(last_error)}. {debug_msg}")
 
         text_resp = response.text.strip()
         
