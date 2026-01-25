@@ -38,24 +38,26 @@ async def debug_exception_handler(request: Request, exc: Exception):
 # Create DB tables
 models.Base.metadata.create_all(bind=engine)
 
-# Auto-Migrate (Simple SQLite support for missing columns)
+from sqlalchemy import inspect
+
+# Auto-Migrate (Support both SQLite and Postgres)
 def run_migrations():
     try:
-        # Use begin() to ensure commit
-        with engine.begin() as conn:
-            # Only for SQLite for now
-            if 'sqlite' in str(engine.url):
-                # Check quizzes table
-                res = conn.execute(text("PRAGMA table_info(quizzes)"))
-                columns = [row[1] for row in res.fetchall()]
-                
-                # If table exists but settings column is missing
-                if columns and 'settings' not in columns:
-                    print("Migrating DB: Adding settings column...")
+        inspector = inspect(engine)
+        if inspector.has_table("quizzes"):
+            columns = [col['name'] for col in inspector.get_columns("quizzes")]
+            
+            # If table exists but settings column is missing
+            if 'settings' not in columns:
+                print("Migrating DB: Adding settings column...")
+                with engine.begin() as conn:
+                    # Generic SQL that works for both (Postgres supports JSON, SQLite supports it as affinity)
                     conn.execute(text("ALTER TABLE quizzes ADD COLUMN settings JSON DEFAULT '{}'"))
-                    print("Migration successful.")
+                print("Migration successful.")
     except Exception as e:
         print(f"Migration Init Warning: {e}")
+        import traceback
+        traceback.print_exc()
 
 run_migrations()
 
