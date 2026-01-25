@@ -288,7 +288,7 @@
                         <!-- Delete -->
                         <form action="/quizzes/delete/{{ quiz.id }}" method="POST" class="col-span-1"
                             onsubmit="return confirm('Silmek istiyor musun?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
                             <button type="submit"
                                 class="w-full h-10 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
