@@ -4,12 +4,15 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from app.database import engine, SessionLocal
-from app.routers import quiz, game, auth
+from app.routers import quiz, game, auth, import_quiz, ai_quiz
 from app import models
 import shutil
 import uuid
 import sys
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(title="BiSual - Interactive Quiz Platform")
 
@@ -94,6 +97,7 @@ app.mount("/static/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 app.include_router(auth.router, tags=["auth"])
 app.include_router(quiz.router, prefix="/api", tags=["quiz"])
 app.include_router(import_quiz.router, prefix="/api", tags=["import"])
+app.include_router(ai_quiz.router, prefix="/api", tags=["ai"])
 app.include_router(quiz.router, tags=["quiz_ui"])
 app.include_router(game.router, tags=["game"])
 

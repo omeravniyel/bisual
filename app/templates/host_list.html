@@ -116,55 +116,45 @@
           showUpload: false,
           uploading: false,
           
+          // AI Generator State
+          showAiModal: false,
+          aiLoading: false,
+          aiTopic: '',
+          aiCount: 10,
+          aiDifficulty: 'medium',
+
+          async createAiQuiz() {
+              if (!this.aiTopic) return alert(" Lütfen bir konu girin."); this.aiLoading=true; try { const res=await
+    fetch('/api/ai/generate', { method: 'POST' , headers: {'Content-Type': 'application/json' }, body: JSON.stringify({
+    topic: this.aiTopic, count: parseInt(this.aiCount), difficulty: this.aiDifficulty }) }); const data=await
+    res.json(); if (res.ok) { alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.'); window.location.reload(); } else {
+    alert('Hata: ' + (data.detail || "Bilinmeyen hata"));
+                  }
+              } catch (e) {
+                  alert("Sunucu hatası.");
+                  console.error(e);
+              } finally {
+                  this.aiLoading = false;
+                  this.showAiModal = false;
+              }
+          },
+
           async openPreview(id) {
               this.showPreview = true;
               this.previewLoading = true;
               this.previewQuiz = null;
               try {
-                  const res = await fetch('/api/quizzes/' + id);
-                  if(res.ok) {
-                      this.previewQuiz = await res.json();
-                  } else {
-                      alert('Yarışma detayları yüklenemedi.');
-                      this.showPreview = false;
-                  }
-              } catch(e) {
-                  console.error(e);
-                  this.showPreview = false;
-              } finally {
-                  this.previewLoading = false;
-              }
-          },
-
-          async uploadExcel(event) {
-              const file = event.target.files[0];
-              if (!file) return;
-              
-              const formData = new FormData();
-              formData.append('file', file);
-              
-              this.uploading = true;
-              try {
-                  const res = await fetch('/api/import/upload', {
-                      method: 'POST',
-                      body: formData
-                  });
-                  const data = await res.json();
-                  
-                  if (res.ok) {
-                      alert('Yarışma başarıyla oluşturuldu! (' + data.questions_count + ' soru)');
-                      window.location.reload();
-                  } else {
-                      alert('Hata: ' + data.detail);
+                  const res = await fetch(' /api/quizzes/' + id); if(res.ok) { this.previewQuiz=await res.json(); }
+    else { alert('Yarışma detayları yüklenemedi.'); this.showPreview=false; } } catch(e) { console.error(e);
+    this.showPreview=false; } finally { this.previewLoading=false; } }, async uploadExcel(event) { const
+    file=event.target.files[0]; if (!file) return; const formData=new FormData(); formData.append('file', file);
+    this.uploading=true; try { const res=await fetch('/api/import/upload', { method: 'POST' , body: formData }); const
+    data=await res.json(); if (res.ok) { alert('Yarışma başarıyla oluşturuldu! (' + data.questions_count + ' soru)' );
+    window.location.reload(); } else { alert('Hata: ' + data.detail);
                   }
               } catch (e) {
-                  alert('Sunucu hatası oluştu.');
-              } finally {
-                  this.uploading = false;
-                  this.showUpload = false;
-              }
-          }
-      }" x-cloak>
+                  alert(' Sunucu hatası oluştu.'); } finally { this.uploading=false; this.showUpload=false; } } }"
+    x-cloak>
 
     <div class="max-w-[1400px] mx-auto p-6 md:p-10 space-y-10">
 
@@ -210,7 +200,14 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    <span>Excel Yükle</span>
+                    <span>Excel</span>
+                </button>
+
+                <!-- AI Button -->
+                <button @click="showAiModal = true"
+                    class="hidden md:flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-purple-600/30 transition-all hover:scale-105 active:scale-95 border border-pink-400/20">
+                    <span class="text-xl">✨</span>
+                    <span>AI Oluştur</span>
                 </button>
 
                 <a href="/create"
@@ -532,6 +529,71 @@
 
         </div>
     </div>
-</body>
 
-</html>
+    <!-- AI Generator Modal -->
+    <div x-show="showAiModal" style="display: none;"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        @click.self="showAiModal = false" x-transition.opacity>
+
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative flex flex-col gap-6"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0">
+
+            <button @click="showAiModal = false"
+                class="absolute top-4 right-4 text-slate-500 hover:text-white transition text-2xl">×</button>
+
+            <!-- Loading Overlay -->
+            <div x-show="aiLoading"
+                class="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center rounded-2xl">
+                <div class="text-6xl mb-4 animate-bounce">✨</div>
+                <h3 class="text-2xl font-bold text-white mb-2">Sihir Yapılıyor...</h3>
+                <p class="text-slate-400">Yapay zeka sorularını hazırlıyor.</p>
+            </div>
+
+            <div>
+                <h2
+                    class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 text-transparent bg-clip-text mb-2">
+                    Yapay Zeka ile Oluştur</h2>
+                <p class="text-slate-400 text-sm">Sadece konuyu yazın, gerisini bize bırakın.</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Topic -->
+                <div>
+                    <label class="block text-sm font-bold text-slate-400 mb-2">Yarışma Konusu</label>
+                    <input type="text" x-model="aiTopic"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition placeholder-slate-600"
+                        placeholder="Örn: Uzay, Python, Osmanlı Tarihi...">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Difficulty -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-400 mb-2">Zorluk</label>
+                        <select x-model="aiDifficulty"
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none">
+                            <option value="easy">Kolay</option>
+                            <option value="medium">Orta</option>
+                            <option value="hard">Zor</option>
+                        </select>
+                    </div>
+
+                    <!-- Count -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-400 mb-2">Soru Sayısı: <span
+                                x-text="aiCount"></span></label>
+                        <input type="range" x-model="aiCount" min="3" max="20" step="1"
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500">
+                    </div>
+                </div>
+            </div>
+
+            <button @click="createAiQuiz()"
+                class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg shadow-lg shadow-purple-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                <span>🪄</span> <span>Yarışmayı Yarat</span>
+            </button>
+
+        </div>
+    </div>
+</body>
