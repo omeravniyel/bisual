@@ -119,12 +119,13 @@
                     </div>
                     <div class="w-24">
                         <label class="text-xs text-slate-400 font-bold uppercase ml-1">Soru Sayısı</label>
-                        <input type="number" x-model="aiCount" min="1" max="10" @change="
-                                // Adjust topics array length
-                                let count = parseInt(aiCount) || 1;
+                        <input type="number" x-model="aiCount" min="1" max="10" @input="
+                                // Adjust topics array length immediately
+                                let count = parseInt($el.value) || 1;
                                 if(count > 10) count = 10;
                                 if(count < 1) count = 1;
-                                aiCount = count;
+                                // We don't force update aiCount variable here to avoid interfering with typing,
+                                // but we update the array based on the input value.
                                 aiTopics = Array.from({length: count}, (_, i) => aiTopics[i] || '');
                             "
                             class="w-full bg-slate-800 border-slate-700 rounded-xl p-3 text-white text-center font-bold mt-1 outline-none focus:border-purple-500">
