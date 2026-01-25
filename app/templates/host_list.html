@@ -599,30 +599,36 @@
         </div>
     </div>
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('hostDashboard', () => ({
-                search: '',
-                hasQuizzes: {{ 'true' if quizzes else 'false' }},
-            showPreview: false,
-            previewQuiz: null,
-            previewLoading: false,
+            < script >
+            document.addEventListener('alpine:init', () => {
+                console.log('BiSual Host Dashboard: Initializing...');
+                Alpine.data('hostDashboard', () => ({
+                    search: '',
+                    hasQuizzes: {{ 'true' if quizzes else 'false' }},
+                showPreview: false,
+                previewQuiz: null,
+                previewLoading: false,
 
-            // State
-            showCreateSelection: false,
+                // State
+                showCreateSelection: false,
 
-            // Excel Upload State
-            showUpload: false,
-            uploading: false,
+                // Excel Upload State
+                showUpload: false,
+                uploading: false,
 
-            // AI Generator State
-            showAiModal: false,
-            aiLoading: false,
-            aiTopic: '',
-            aiCount: 10,
-            aiDifficulty: 'medium',
+                // AI Generator State
+                showAiModal: false,
+                aiLoading: false,
+                aiTopic: '',
+                aiCount: 10,
+                aiDifficulty: 'medium',
 
-            async createAiQuiz() {
-            if(!this.aiTopic) return alert('Lütfen bir konu girin.');
+                init() {
+                console.log('BiSual Host Dashboard: Mounted!');
+            },
+
+                async createAiQuiz() {
+                if(!this.aiTopic) return alert('Lütfen bir konu girin.');
         this.aiLoading = true;
         try {
             const res = await fetch('/api/ai/generate', {
