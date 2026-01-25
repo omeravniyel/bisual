@@ -127,14 +127,19 @@
           aiDifficulty: 'medium',
 
           async createAiQuiz() {
-              if (!this.aiTopic) return alert(" Lütfen bir konu girin."); this.aiLoading=true; try { const res=await
+              if (!this.aiTopic) return alert('Lütfen bir konu girin.'); this.aiLoading=true; try { const res=await
     fetch('/api/ai/generate', { method: 'POST' , headers: {'Content-Type': 'application/json' }, body: JSON.stringify({
     topic: this.aiTopic, count: parseInt(this.aiCount), difficulty: this.aiDifficulty }) }); const data=await
-    res.json(); if (res.ok) { alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.'); window.location.reload(); } else {
-    alert('Hata: ' + (data.detail || "Bilinmeyen hata"));
+                  const data = await res.json();
+                  if (res.ok) {
+                      alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.');
+                      window.location.reload();
+                  } else {
+                      alert('Hata: ' + (data.detail || 'Bilinmeyen hata'));
+                  }
                   }
               } catch (e) {
-                  alert("Sunucu hatası.");
+                  alert('Sunucu hatası.');
                   console.error(e);
               } finally {
                   this.aiLoading = false;
