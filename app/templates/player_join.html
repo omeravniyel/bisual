@@ -129,7 +129,7 @@
 
     <!-- Background Music -->
     <audio id="waitingMusic" loop>
-        <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mpeg">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
     </audio>
 
     <!-- HEADER -->
@@ -454,7 +454,14 @@
                 timerValue: 0,
                 questionStartTime: 0,
                 timerPercent: 100,
+                timerPercent: 100,
                 timerInterval: null,
+
+                sounds: {
+                    correct: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
+                    wrong: new Audio('https://actions.google.com/sounds/v1/cartoon/clown_horn.ogg'),
+                    click: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg')
+                },
 
                 // Question Data
                 currentQuestion: {
@@ -524,6 +531,15 @@
                         this.score = data.score;
                         if (data.streak) this.streak = data.streak; else this.streak = 0;
                         if (data.points_added) this.lastPoints = data.points_added;
+
+                        // Audio Feedback
+                        if (this.lastResult === 'CORRECT') {
+                            this.sounds.correct.currentTime = 0;
+                            this.sounds.correct.play().catch(e => { });
+                        } else {
+                            this.sounds.wrong.currentTime = 0;
+                            this.sounds.wrong.play().catch(e => { });
+                        }
 
                         setTimeout(() => {
                             if (this.state === 'FEEDBACK') this.state = 'WAITING';

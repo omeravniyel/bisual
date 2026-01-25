@@ -453,10 +453,12 @@
                 },
 
                 sounds: {
-                    lobby: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'),
-                    question: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), // Placeholder for question
-                    answer: new Audio('/static/audio/answer.mp3'),
-                    end: new Audio('/static/audio/end.mp3')
+                    lobby: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+                    question: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'),
+                    join: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'),
+                    timeup: new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'),
+                    end: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
+                    countdown: new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg')
                 },
 
                 // Answer Stats
@@ -511,7 +513,10 @@
 
                     // Setup Audio Loops
                     this.sounds.lobby.loop = true;
+                    this.sounds.lobby.volume = 0.4;
+
                     this.sounds.question.loop = true;
+                    this.sounds.question.volume = 0.2;
                 },
 
                 toggleMute() {
@@ -578,6 +583,7 @@
                     }
                     else if (data.type === 'PLAYER_JOINED') {
                         this.players.push(data.nickname);
+                        this.simplePlay('join');
                     }
                     else if (data.type === 'NEW_QUESTION') {
                         this.state = 'QUESTION';
@@ -599,6 +605,7 @@
                         // Fire confetti if there is a 'winner' (top of list)
                         if (this.leaderboard.length > 0) {
                             this.fireWinnerConfetti();
+                            this.simplePlay('end'); // Use end/chime sound for leaderboard
                         }
                     }
                     else if (data.type === 'GAME_OVER') {
@@ -636,7 +643,8 @@
                         if (this.timer <= 0) {
                             clearInterval(this.timerInterval);
                             this.showAnswer = true;
-                            this.simplePlay('answer'); // Play time's up sound
+                            this.simplePlay('timeup'); // Play time's up sound
+                            this.playMusic('lobby'); // Return to lobby music distinct from high-tension question music
                             // Auto show leaderboard OR show manual next button based on settings
                             const showLeaderboard = this.settings.show_leaderboard_every_question !== false; // Default true if undefined
                             const isLastQuestion = this.currentQuestionIndex >= this.totalQuestions - 1;
@@ -648,6 +656,7 @@
                             }
                             // Else: Stay on this screen, show manual button (handled in HTML)
                         }
+                        if (this.timer === 3) this.simplePlay('countdown');
                     }, 1000);
                 },
 
