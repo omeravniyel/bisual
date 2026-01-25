@@ -39,16 +39,44 @@ async def generate_quiz_preview(
     count = payload.get("count", 5)
     difficulty = payload.get("difficulty", "medium")
 
+    question_type = payload.get("type", "multiple_choice")
+    time_limit = payload.get("time_limit", 20)
+    points = payload.get("points", 1000)
+
     # Limits
     if count > 20: count = 20
     if count < 1: count = 5
 
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+
+    # Customize Prompt based on Type
+    options_instruction = ""
+    if question_type == "true_false":
+        options_instruction = """
+        IMPORTANT: This is a True/False quiz.
+        Options MUST be exactly:
+        [
+            { "text": "True", "is_correct": true/false },
+            { "text": "False", "is_correct": true/false }
+        ]
+        """
+    elif question_type == "typing":
+        options_instruction = """
+        IMPORTANT: This is a Typing Answer quiz.
+        Options MUST have exactly ONE element containing the correct text answer:
+        [
+            { "text": "Correct Answer Here", "is_correct": true }
+        ]
+        """
+    else: # multiple_choice
+        options_instruction = """
+        Options: Provide 4 options, one correct.
+        """
 
     prompt = f"""
     Create {count} quiz questions about "{topic}". 
     Difficulty: {difficulty}.
+    Question Type: {question_type}
     Language: Turkish (Türkçe).
     
     Return ONLY a raw JSON object (list of questions).
@@ -57,18 +85,16 @@ async def generate_quiz_preview(
         "questions": [
             {{
                 "text": "Question text?",
-                "limit": 20,
-                "points": 1000,
-                "options": [
-                    {{ "text": "A", "is_correct": true }},
-                    {{ "text": "B", "is_correct": false }},
-                    {{ "text": "C", "is_correct": false }},
-                    {{ "text": "D", "is_correct": false }}
-                ]
+                "limit": {time_limit},
+                "points": {points},
+                "options": ... (see instructions below)
             }}
         ]
     }}
-    Randomize correct option position.
+    
+    {options_instruction}
+    
+    Randomize correct option position (except True/False).
     """
 
     try:

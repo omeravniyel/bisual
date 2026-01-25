@@ -624,13 +624,47 @@
                 <input type="text" x-model="aiTopic" placeholder="Konu girin (örn: Fotosentez)"
                     class="w-full border p-3 rounded-lg text-lg outline-none focus:border-purple-500">
 
-                <div class="flex gap-4">
-                    <input type="number" x-model="aiCount" placeholder="Sayı" class="w-20 border p-3 rounded-lg">
-                    <select x-model="aiDifficulty" class="border p-3 rounded-lg flex-1">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" x-model="aiCount" placeholder="Sayı" class="w-full border p-3 rounded-lg"
+                        min="1" max="20">
+                    <select x-model="aiDifficulty" class="w-full border p-3 rounded-lg">
                         <option value="easy">Kolay</option>
                         <option value="medium">Orta</option>
                         <option value="hard">Zor</option>
                     </select>
+                </div>
+
+                <!-- New Options -->
+                <div class="grid grid-cols-3 gap-4">
+                    <!-- Type -->
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold uppercase">Tür</label>
+                        <select x-model="aiType" class="w-full border p-2 rounded-lg mt-1 text-sm bg-gray-50">
+                            <option value="multiple_choice">Quiz</option>
+                            <option value="true_false">Doğru/Yanlış</option>
+                            <option value="typing">Kısa Cevap</option>
+                        </select>
+                    </div>
+                    <!-- Time -->
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold uppercase">Süre</label>
+                        <select x-model="aiTime" class="w-full border p-2 rounded-lg mt-1 text-sm bg-gray-50">
+                            <option value="5">5 sn</option>
+                            <option value="10">10 sn</option>
+                            <option value="20">20 sn</option>
+                            <option value="30">30 sn</option>
+                            <option value="60">60 sn</option>
+                        </select>
+                    </div>
+                    <!-- Points -->
+                    <div>
+                        <label class="text-xs text-gray-500 font-bold uppercase">Puan</label>
+                        <select x-model="aiPoints" class="w-full border p-2 rounded-lg mt-1 text-sm bg-gray-50">
+                            <option value="1000">Standart</option>
+                            <option value="2000">İki Kat</option>
+                            <option value="0">Puan Yok</option>
+                        </select>
+                    </div>
                 </div>
 
                 <button @click="fetchAiQuestions()" :disabled="aiLoading"
@@ -787,6 +821,9 @@
                 aiTopic: '',
                 aiCount: 5,
                 aiDifficulty: 'medium',
+                aiType: 'multiple_choice',
+                aiTime: '20',
+                aiPoints: '1000',
                 aiLoading: false,
                 aiQuestions: [],
                 excelLoading: false,
@@ -838,7 +875,10 @@
                             body: JSON.stringify({
                                 topic: this.aiTopic,
                                 count: parseInt(this.aiCount),
-                                difficulty: this.aiDifficulty
+                                difficulty: this.aiDifficulty,
+                                type: this.aiType,
+                                time_limit: parseInt(this.aiTime),
+                                points: parseInt(this.aiPoints)
                             })
                         });
                         const data = await res.json();
