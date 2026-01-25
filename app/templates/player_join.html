@@ -11,29 +11,112 @@
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #f2f2f2;
-            color: #1e1e1e;
+            background-color: #020617;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: white;
             user-select: none;
             overflow: hidden;
             overscroll-behavior: none;
             touch-action: none;
         }
 
-        .mesh-bg {
-            background-color: hsla(270, 50%, 40%, 1);
-            background-image:
-                radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
-                radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
-                radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
         }
 
-        .btn-shadow {
-            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+        .input-glass {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
         }
 
-        .btn-shadow:active {
-            box-shadow: 0 0 0 rgba(0, 0, 0, 0.2);
-            transform: translateY(4px);
+        .input-glass:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-premium {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-premium:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .answer-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .answer-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+
+        .answer-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Animations */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        .ring-animation::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #6366f1;
+            animation: pulse-ring 2s infinite;
         }
 
         [x-cloak] {
@@ -42,163 +125,286 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col mesh-bg text-white" x-data="playerGame()" x-cloak>
+<body class="h-screen flex flex-col" x-data="playerGame()" x-cloak>
 
-    <!-- Background Music for Waiting Screen -->
+    <!-- Background Music -->
     <audio id="waitingMusic" loop>
         <source src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" type="audio/mpeg">
     </audio>
 
-    <!-- HEADER (Pin & Score) -->
-    <div class="h-14 bg-black/20 backdrop-blur flex justify-between items-center px-4 shrink-0 z-10"
+    <!-- HEADER -->
+    <div class="h-16 px-6 flex justify-between items-center z-20 w-full absolute top-0 left-0"
         x-show="state !== 'LOGIN'">
-        <div class="font-bold text-sm opacity-70">PIN: <span x-text="pin"></span></div>
-        <div class="bg-white/10 px-3 py-1.5 rounded-full font-bold text-sm" x-text="nickname"></div>
-        <div class="font-bold text-sm opacity-70" x-show="score > 0" x-text="score"></div>
+        <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-2">
+            <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">PIN</span>
+            <span class="font-mono font-bold text-lg" x-text="pin"></span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="glass-panel px-4 py-2 rounded-full font-bold flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <span x-text="nickname"></span>
+            </div>
+            <div class="glass-panel px-3 py-2 rounded-full font-black text-indigo-400" x-show="score > 0"
+                x-text="score"></div>
+        </div>
     </div>
 
-    <!-- LOGIN SCREEN -->
-    <div x-show="state === 'LOGIN'" class="flex-1 flex flex-col items-center justify-center p-6" x-transition>
-        <div class="w-full max-w-sm bg-white text-black p-8 rounded-2xl shadow-2xl text-center">
-            <div class="text-4xl mb-4">⚡</div>
-            <h1 class="text-3xl font-black mb-6 tracking-tight">BiSual'a Katıl</h1>
+    <!-- 1. LOGIN SCREEN -->
+    <div x-show="state === 'LOGIN'" class="flex-1 flex flex-col items-center justify-center p-6 relative"
+        x-transition.opacity>
+        <!-- Floating shapes background -->
+        <div class="absolute top-1/4 left-1/4 text-6xl opacity-20 animate-float select-none"
+            style="animation-delay: 0s;">⚡</div>
+        <div class="absolute bottom-1/4 right-1/4 text-6xl opacity-20 animate-float select-none"
+            style="animation-delay: 2s;">🎮</div>
+
+        <div class="w-full max-w-md glass-panel p-8 rounded-3xl text-center relative z-10 backdrop-blur-xl">
+            <div
+                class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl shadow-indigo-500/30 transform rotate-3">
+                <span class="text-4xl text-white">🚀</span>
+            </div>
+
+            <h1 class="text-3xl font-black mb-2 tracking-tight text-white">BiSual</h1>
+            <p class="text-slate-400 mb-8 text-sm">Yarışmaya katılmak için ismini gir</p>
 
             <div class="space-y-4">
-                <input type="text" x-model="nickname"
-                    class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-4 text-center text-xl font-bold outline-none focus:border-black transition placeholder-gray-400 text-black"
-                    placeholder="Adınız" maxlength="12" autofocus>
+                <div class="relative">
+                    <input type="text" x-model="nickname"
+                        class="input-glass w-full rounded-2xl p-4 text-center text-xl font-bold outline-none placeholder-slate-500"
+                        placeholder="Adınız" maxlength="12" autofocus>
+                </div>
 
                 <button @click="join()"
-                    class="w-full bg-black text-white font-black py-4 rounded-xl text-lg hover:bg-gray-800 transition transform active:scale-95 btn-shadow border-none">
-                    Oyuna Gir
+                    class="w-full btn-premium py-4 rounded-2xl text-lg font-bold text-white tracking-wide">
+                    OYUNA GİR
                 </button>
             </div>
         </div>
+
+        <div class="mt-8 text-slate-500 text-xs text-center relative z-10">
+            Hazır mısın? Sahne senin!
+        </div>
     </div>
 
-    <!-- WAITING SCREEN -->
-    <div x-show="state === 'WAITING'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
-        x-transition>
-        <div class="animate-bounce text-7xl mb-8">⏳</div>
-        <h2
-            class="text-4xl font-black mb-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-transparent bg-clip-text animate-pulse">
-            Hazır Ol!</h2>
-        <p class="text-white/70 text-xl mb-2">Yarışma ekranına bak...</p>
-        <p class="text-white/50 text-sm">Soru geldiğinde cevapla!</p>
+    <!-- 2. WAITING SCREEN -->
+    <div x-show="state === 'WAITING'"
+        class="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden"
+        x-transition.opacity>
 
-        <!-- Music Control Button -->
+        <div class="relative w-32 h-32 flex items-center justify-center mb-8 ring-animation">
+            <div
+                class="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center relative z-10 shadow-xl border-4 border-slate-700">
+                <span class="text-4xl animate-bounce">⏳</span>
+            </div>
+        </div>
+
+        <h2
+            class="text-4xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+            İçeridesin!
+        </h2>
+
+        <div class="glass-panel px-6 py-4 rounded-2xl mb-8 max-w-xs mx-auto">
+            <p class="text-slate-300 text-lg">Yarışma ekranına bak...</p>
+            <div class="mt-2 flex justify-center gap-1">
+                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            </div>
+        </div>
+
+        <!-- Music Toggle -->
         <button
             @click="const music = document.getElementById('waitingMusic'); music.paused ? music.play() : music.pause()"
-            class="mt-6 bg-white/10 hover:bg-white/20 backdrop-blur px-6 py-2 rounded-full text-sm transition-all border border-white/20">
-            🎵 Müzik
+            class="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full text-sm transition text-slate-400 hover:text-white border border-white/5">
+            <span>🎵</span> <span>Lobi Müziği</span>
         </button>
 
-        <div
-            class="mt-16 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl transform hover:scale-105 transition-transform">
-            <div class="text-xs uppercase tracking-widest opacity-60 mb-2">Senin Puanın</div>
-            <div class="text-5xl font-black bg-gradient-to-r from-green-400 to-blue-500 text-transparent bg-clip-text"
-                x-text="score">0</div>
+        <!-- Current Score Display (if re-entering lobby) -->
+        <div x-show="score > 0" class="mt-12 text-center" x-transition.enter>
+            <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">PUANIN</div>
+            <div class="text-5xl font-black text-white drop-shadow-lg" x-text="score"></div>
         </div>
     </div>
 
-    <!-- ANSWERING SCREEN -->
-    <div x-show="state === 'ANSWERING'" class="flex-1 flex flex-col relative overflow-hidden" x-transition>
+    <!-- 3. ANSWERING SCREEN -->
+    <div x-show="state === 'ANSWERING'" class="flex-1 flex flex-col relative" x-transition.opacity>
 
         <!-- Timer Bar -->
-        <div class="w-full h-2 bg-white/20 relative">
-            <div class="h-full bg-yellow-400 transition-all duration-[1000ms] linear"
+        <div class="absolute top-[64px] left-0 w-full h-1.5 bg-white/5">
+            <div class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-[1000ms] linear shadow-[0_0_10px_rgba(99,102,241,0.5)]"
                 :style="'width: ' + timerPercent + '%'"></div>
-            <div class="absolute top-4 right-4 text-white font-black text-2xl drop-shadow-md" x-text="timerValue + 's'">
+        </div>
+
+        <!-- Timer Count (Floating) -->
+        <div class="absolute top-20 right-6 font-black text-4xl text-white/10 select-none z-0" x-text="timerValue">
+        </div>
+
+        <!-- Question Text (Mobile) -->
+        <div class="mt-24 px-6 mb-4 text-center relative z-10">
+            <div class="text-lg font-medium text-white/90 leading-snug drop-shadow-md" x-text="currentQuestion.text">
             </div>
         </div>
 
-        <!-- Question Text (Optional on mobile, but helpful) -->
-        <div class="p-4 bg-black/30 text-center font-bold text-xl text-white drop-shadow-lg"
-            x-text="currentQuestion.text"></div>
+        <!-- DYNAMIC CONTENT -->
+        <div class="flex-1 p-4 pb-8 flex flex-col justify-center max-w-2xl mx-auto w-full relative z-10">
 
-        <!-- DYNAMIC CONTENT BASED ON TYPE -->
-        <div class="flex-1 p-4 flex flex-col justify-center">
-
-            <!-- 1. MULTIPLE CHOICE / POLL -->
+            <!-- 1. MULTIPLE CHOICE -->
             <div x-show="['multiple_choice', 'poll'].includes(currentQuestion.q_type)"
-                class="h-full grid grid-cols-2 gap-4">
+                class="h-full max-h-[500px] grid grid-cols-2 gap-3">
+
                 <button @click="submitAnswer(0)"
-                    class="bg-red-500 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
-                    <span class="text-5xl text-white drop-shadow-md">▲</span>
-                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                    class="answer-btn bg-red-500 rounded-2xl flex flex-col items-center justify-center p-4 shadow-lg shadow-red-500/20">
+                    <div
+                        class="bg-black/20 w-12 h-12 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
+                        <span class="text-2xl text-white">▲</span>
+                    </div>
+                    <span
+                        class="text-white font-bold text-sm md:text-lg leading-tight text-center opacity-90 line-clamp-3"
                         x-text="currentQuestion.options && currentQuestion.options[0]"></span>
                 </button>
+
                 <button @click="submitAnswer(1)"
-                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
-                    <span class="text-5xl text-white drop-shadow-md">◆</span>
-                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                    class="answer-btn bg-blue-600 rounded-2xl flex flex-col items-center justify-center p-4 shadow-lg shadow-blue-600/20">
+                    <div
+                        class="bg-black/20 w-12 h-12 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
+                        <span class="text-2xl text-white">◆</span>
+                    </div>
+                    <span
+                        class="text-white font-bold text-sm md:text-lg leading-tight text-center opacity-90 line-clamp-3"
                         x-text="currentQuestion.options && currentQuestion.options[1]"></span>
                 </button>
+
                 <button @click="submitAnswer(2)"
-                    class="bg-yellow-500 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
-                    <span class="text-5xl text-white drop-shadow-md">●</span>
-                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                    class="answer-btn bg-yellow-500 rounded-2xl flex flex-col items-center justify-center p-4 shadow-lg shadow-yellow-500/20">
+                    <div
+                        class="bg-black/20 w-12 h-12 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
+                        <span class="text-2xl text-white">●</span>
+                    </div>
+                    <span
+                        class="text-white font-bold text-sm md:text-lg leading-tight text-center opacity-90 line-clamp-3"
                         x-text="currentQuestion.options && currentQuestion.options[2]"></span>
                 </button>
+
                 <button @click="submitAnswer(3)"
-                    class="bg-green-600 rounded-xl btn-shadow active:scale-95 transition flex flex-col items-center justify-center p-2">
-                    <span class="text-5xl text-white drop-shadow-md">■</span>
-                    <span class="text-white font-bold text-lg leading-tight mt-1"
+                    class="answer-btn bg-green-600 rounded-2xl flex flex-col items-center justify-center p-4 shadow-lg shadow-green-600/20">
+                    <div
+                        class="bg-black/20 w-12 h-12 rounded-full flex items-center justify-center mb-2 backdrop-blur-sm">
+                        <span class="text-2xl text-white">■</span>
+                    </div>
+                    <span
+                        class="text-white font-bold text-sm md:text-lg leading-tight text-center opacity-90 line-clamp-3"
                         x-text="currentQuestion.options && currentQuestion.options[3]"></span>
                 </button>
             </div>
 
             <!-- 2. TRUE / FALSE -->
-            <div x-show="currentQuestion.q_type === 'true_false'" class="h-full grid grid-cols-1 gap-4">
+            <div x-show="currentQuestion.q_type === 'true_false'" class="h-full max-h-[400px] grid grid-cols-1 gap-4">
                 <button @click="submitAnswer(0)"
-                    class="bg-blue-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center gap-4">
-                    <span class="text-4xl text-white drop-shadow-md">◆</span>
-                    <span class="text-3xl font-black">DOĞRU</span>
+                    class="answer-btn bg-blue-600 rounded-2xl flex items-center justify-center gap-6 shadow-xl shadow-blue-600/20">
+                    <div class="bg-white/20 p-3 rounded-lg"><span class="text-3xl text-white">◆</span></div>
+                    <span class="text-3xl font-black text-white tracking-widest">DOĞRU</span>
                 </button>
                 <button @click="submitAnswer(1)"
-                    class="bg-red-600 rounded-xl btn-shadow active:scale-95 transition flex items-center justify-center gap-4">
-                    <span class="text-4xl text-white drop-shadow-md">▲</span>
-                    <span class="text-3xl font-black">YANLIŞ</span>
+                    class="answer-btn bg-red-600 rounded-2xl flex items-center justify-center gap-6 shadow-xl shadow-red-600/20">
+                    <div class="bg-white/20 p-3 rounded-lg"><span class="text-3xl text-white">▲</span></div>
+                    <span class="text-3xl font-black text-white tracking-widest">YANLIŞ</span>
                 </button>
             </div>
 
             <!-- 3. TYPING -->
-            <div x-show="currentQuestion.q_type === 'typing'" class="flex flex-col items-center justify-center gap-6">
-                <h3 class="font-bold text-xl opacity-80">Doğru cevabı yazın</h3>
+            <div x-show="currentQuestion.q_type === 'typing'"
+                class="flex flex-col items-center justify-center gap-6 glass-panel p-8 rounded-3xl">
+                <h3 class="font-bold text-xl text-indigo-200">Cevabını Yaz</h3>
                 <input type="text" x-model="textAnswer"
-                    class="w-full p-4 rounded-xl text-black text-center text-2xl font-bold uppercase shadow-lg outline-none border-4 focus:border-indigo-500 transition"
-                    placeholder="Cevap...">
+                    class="input-glass w-full p-4 rounded-xl text-center text-2xl font-bold uppercase outline-none focus:border-indigo-500 transition"
+                    placeholder="Buraya yaz...">
                 <button @click="submitAnswer(textAnswer)"
-                    class="w-full bg-white text-indigo-900 font-black py-4 rounded-xl text-xl btn-shadow active:scale-95 transition">
+                    class="w-full btn-premium py-4 rounded-xl text-xl font-bold text-white">
                     GÖNDER
                 </button>
             </div>
 
-            <!-- 4. MARKED ANSWER (PIN DROP) -->
+            <!-- 4. MARKED ANSWER -->
             <div x-show="currentQuestion.q_type === 'marked_answer'"
                 class="flex-1 flex flex-col items-center justify-center gap-4 w-full h-full">
                 <div
-                    class="relative w-full h-full max-h-[60vh] flex items-center justify-center bg-black/20 rounded-lg overflow-hidden border-2 border-white/20">
-                    <!-- Image needs to be clickable. We need to handle aspect ratio properly on mobile. 
-                          Ideally fit containment. Coordinates are % based so scaling is fine. -->
-                    <div class="relative w-full h-full" x-show="currentQuestion.image" @click="setPin($event)">
-                        <img :src="currentQuestion.image" class="w-full h-full object-contain">
-                        <!-- Pin -->
+                    class="relative w-full flex-1 bg-black/40 rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+                    <div class="relative w-full h-full flex items-center justify-center" x-show="currentQuestion.image"
+                        @click="setPin($event)">
+                        <img :src="currentQuestion.image"
+                            class="max-w-full max-h-full object-contain pointer-events-none">
+                        <!-- Pin Overlay -->
+                        <div class="absolute inset-0 cursor-crosshair"></div>
+                        <!-- Pin Marker -->
                         <div x-show="pinCoords"
-                            class="absolute text-4xl -ml-4 -mt-8 drop-shadow-lg pointer-events-none transition-all"
+                            class="absolute text-4xl -ml-4 -mt-8 drop-shadow-xl transition-all duration-300 bounce-in"
                             :style="'left: ' + pinCoords.x + '%; top: ' + pinCoords.y + '%'">
                             📍
                         </div>
                     </div>
+                    <div x-show="!currentQuestion.image"
+                        class="absolute inset-0 flex items-center justify-center text-slate-500">
+                        Görsel yükleniyor...
+                    </div>
                 </div>
+
                 <button x-show="pinCoords" @click="submitAnswer(pinCoords.x + ',' + pinCoords.y)"
-                    class="w-full bg-indigo-600 text-white font-black py-4 rounded-xl text-xl btn-shadow active:scale-95 transition animate-punch">
+                    class="w-full btn-premium py-4 rounded-xl text-xl font-bold text-white glass-panel border-t border-white/20">
                     GÖNDER
                 </button>
-                <div x-show="!pinCoords" class="text-sm opacity-60">Görsele dokunarak işaretle!</div>
+                <div x-show="!pinCoords"
+                    class="text-sm text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/20">
+                    👆 Görselin üzerine dokun
+                </div>
             </div>
-
         </div>
+    </div>
+
+    <!-- 4. ANSWER SENT SCREEN (Waiting for others) -->
+    <div x-show="state === 'ANSWER_SENT'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
+        x-transition.opacity>
+        <div
+            class="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-indigo-600/40 animate-pulse">
+            <span class="text-4xl">🚀</span>
+        </div>
+        <h2 class="text-3xl font-black text-white mb-2">Cevap Gönderildi!</h2>
+        <p class="text-slate-400">Diğerlerini bekliyoruz...</p>
+
+        <div class="mt-8 flex gap-2">
+            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+        </div>
+    </div>
+
+    <!-- 5. RESULT SCREEN (Correct/Wrong feedback) -->
+    <!-- Note: To fully implement this, we need 'is_correct' info from server. For now, assuming server sends state update. -->
+    <div x-show="state === 'RESULT_CORRECT'" class="flex-1 flex flex-col items-center justify-center bg-green-600/90"
+        x-transition>
+        <div class="text-8xl mb-4 animate-bounce">✨</div>
+        <h2 class="text-5xl font-black text-white drop-shadow-md">DOĞRU!</h2>
+        <div class="mt-4 px-6 py-2 bg-black/20 rounded-full text-white/80 font-mono text-xl">+<span
+                x-text="lastPoints"></span> Puan</div>
+    </div>
+
+    <div x-show="state === 'RESULT_WRONG'" class="flex-1 flex flex-col items-center justify-center bg-red-600/90"
+        x-transition>
+        <div class="text-8xl mb-4 animate-shake">❌</div>
+        <h2 class="text-5xl font-black text-white drop-shadow-md">YANLIŞ</h2>
+        <p class="text-white/70 mt-4 text-lg">Bir dahaki sefere...</p>
+    </div>
+
+    <!-- 6. GAME OVER -->
+    <div x-show="state === 'GAME_OVER'" class="flex-1 flex flex-col items-center justify-center" x-transition>
+        <h1 class="text-4xl font-black mb-4">Oyun Bitti!</h1>
+        <div class="glass-panel p-8 rounded-3xl text-center w-full max-w-sm">
+            <div class="text-sm text-slate-400 uppercase tracking-widest mb-2">TOPLAM PUAN</div>
+            <div class="text-6xl font-black text-indigo-400 mb-6" x-text="score"></div>
+            <a href="/" class="block w-full btn-premium py-3 rounded-xl text-white font-bold">Çıkış Yap</a>
+        </div>
+    </div>
+    </div>
     </div>
 
     <!-- FEEDBACK SCREEN -->
