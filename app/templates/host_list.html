@@ -41,10 +41,15 @@
             }
         }
     </script>
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #020617;
@@ -102,13 +107,111 @@
             background: rgba(255, 255, 255, 0.2);
         }
     </style>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('hostDashboard', () => ({
+                search: '',
+                showPreview: false,
+                previewQuiz: null,
+                previewLoading: false,
+                showCreateSelection: false,
+                showUpload: false,
+                uploading: false,
+                showAiModal: false,
+                aiLoading: false,
+                aiTopic: '',
+                aiCount: 10,
+                aiDifficulty: 'medium',
+
+                init() {
+                    console.log("Dashboard initialized");
+                },
+
+                async createAiQuiz() {
+                    if (!this.aiTopic) return alert('Lütfen bir konu girin.');
+                    this.aiLoading = true;
+                    try {
+                        const res = await fetch('/api/ai/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                topic: this.aiTopic,
+                                count: parseInt(this.aiCount),
+                                difficulty: this.aiDifficulty
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.');
+                            window.location.reload();
+                        } else {
+                            alert('Hata: ' + (data.detail || 'Bilinmeyen hata'));
+                        }
+                    } catch (e) {
+                        alert('Sunucu hatası.');
+                        console.error(e);
+                    } finally {
+                        this.aiLoading = false;
+                        this.showAiModal = false;
+                    }
+                },
+
+                async openPreview(id) {
+                    this.showPreview = true;
+                    this.previewLoading = true;
+                    this.previewQuiz = null;
+                    try {
+                        const res = await fetch('/api/quizzes/' + id);
+                        if (res.ok) {
+                            this.previewQuiz = await res.json();
+                        } else {
+                            alert('Yarışma detayları yüklenemedi.');
+                            this.showPreview = false;
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        this.showPreview = false;
+                    } finally {
+                        this.previewLoading = false;
+                    }
+                },
+
+                async uploadExcel(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    this.uploading = true;
+                    try {
+                        const res = await fetch('/api/import/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert('Yarışma başarıyla oluşturuldu! (' + data.questions_count + ' soru)');
+                            window.location.reload();
+                        } else {
+                            alert('Hata: ' + data.detail);
+                        }
+                    } catch (e) {
+                        alert('Sunucu hatası oluştu.');
+                    } finally {
+                        this.uploading = false;
+                        this.showUpload = false;
+                    }
+                }
+            }));
+        });
+    </script>
 </head>
 
-<body class="selection:bg-indigo-500/30 selection:text-indigo-200" x-data="getHostData()" x-cloak>
+<body class="selection:bg-indigo-500/30 selection:text-indigo-200" x-data="hostDashboard">
 
     <div class="max-w-[1400px] mx-auto p-6 md:p-10 space-y-10">
 
-        <!-- Navbar / Header -->
+        <!-- Navbar -->
         <header
             class="flex flex-col md:flex-row justify-between items-center gap-6 glass-panel p-4 rounded-2xl sticky top-4 z-40">
             <div class="flex items-center gap-4 w-full md:w-auto">
@@ -130,7 +233,6 @@
             </div>
 
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <!-- Search Bar -->
                 <div class="relative group w-full md:w-72">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <svg class="h-5 w-5 text-slate-500 group-focus-within:text-indigo-400 transition-colors"
@@ -143,7 +245,6 @@
                         class="block w-full pl-10 pr-3 py-2.5 border border-slate-700/50 rounded-xl leading-5 bg-slate-900/50 text-slate-300 placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 sm:text-sm transition-all shadow-inner">
                 </div>
 
-                <!-- Create Button (Triggers Selection Modal) -->
                 <button @click="showCreateSelection = true"
                     class="hidden md:flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95 border border-indigo-400/20">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,10 +264,9 @@
             </div>
         </header>
 
-        <!-- Grid Layout -->
+        <!-- Listing -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
 
-            <!-- Mobile Create Button (Visible only on small screens) -->
             <button @click="showCreateSelection = true"
                 class="md:hidden glass-card rounded-2xl p-4 flex items-center justify-center gap-2 text-indigo-400 border-dashed border-2 border-indigo-500/30 w-full">
                 <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -175,27 +275,21 @@
                 <span class="font-bold">Yeni Yarışma Oluştur</span>
             </button>
 
-            <!-- Quiz Cards -->
             {% for quiz in quizzes %}
             <div x-show="'{{ quiz.title|lower }}'.includes(search.toLowerCase())" x-transition.opacity.duration.300ms
                 class="glass-card rounded-3xl overflow-hidden group flex flex-col relative h-[320px]">
 
-                <!-- Background Pattern/Glow -->
                 <div class="absolute top-0 inset-x-0 h-32 opacity-30 transition-opacity group-hover:opacity-50"
                     style="background: linear-gradient(180deg, {% if quiz.theme == 'winter' %}#3b82f6{% elif quiz.theme == 'spring' %}#22c55e{% elif quiz.theme == 'summer' %}#eab308{% elif quiz.theme == 'autumn' %}#f97316{% elif quiz.theme == 'ukraine' %}#3b82f6{% else %}#6366f1{% endif %} 0%, transparent 100%);">
                 </div>
 
-                <!-- Theme Icon Floating -->
                 <div
                     class="absolute -right-4 -top-4 text-9xl opacity-[0.03] select-none pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
                     {% if quiz.theme == 'winter' %}❄️{% elif quiz.theme == 'spring' %}🌸{% elif quiz.theme == 'summer'
                     %}☀️{% elif quiz.theme == 'autumn' %}🍂{% elif quiz.theme == 'ukraine' %}🇺🇦{% else %}🧊{% endif %}
                 </div>
 
-                <!-- Content -->
                 <div class="p-6 relative z-10 flex flex-col h-full">
-
-                    <!-- Top Logic -->
                     <div class="flex justify-between items-start mb-4">
                         <div class="text-4xl filter drop-shadow-lg group-hover:animate-float">
                             {% if quiz.theme == 'winter' %}❄️{% elif quiz.theme == 'spring' %}🌸{% elif quiz.theme ==
@@ -203,7 +297,6 @@
                             else %}🧊{% endif %}
                         </div>
                         <div class="flex gap-2">
-                            <!-- Preview Button (Floating) -->
                             <button @click="openPreview({{ quiz.id }})"
                                 class="bg-white/10 hover:bg-white/20 text-white p-1.5 rounded-lg backdrop-blur-sm transition border border-white/5"
                                 title="Hızlı Önizleme">
@@ -218,7 +311,6 @@
                         </div>
                     </div>
 
-                    <!-- Title & Desc -->
                     <div class="mb-4">
                         <h2
                             class="text-xl font-bold text-white mb-1.5 leading-tight line-clamp-2 group-hover:text-indigo-300 transition-colors">
@@ -229,7 +321,6 @@
                         </p>
                     </div>
 
-                    <!-- Stats -->
                     <div class="mb-6 flex items-center gap-3 text-xs text-slate-500 font-medium">
                         <div
                             class="flex items-center gap-1.5 bg-slate-900/40 px-2 py-1 rounded-md border border-white/5">
@@ -241,9 +332,7 @@
                         </div>
                     </div>
 
-                    <!-- Actions Bottom -->
                     <div class="mt-auto grid grid-cols-4 gap-2">
-                        <!-- Delete -->
                         <form action="/quizzes/delete/{{ quiz.id }}" method="POST" class="col-span-1"
                             onsubmit="return confirm('Bu yarışmayı silmek istediğine emin misin?');">
                             <button type="submit"
@@ -256,7 +345,6 @@
                             </button>
                         </form>
 
-                        <!-- Duplicate -->
                         <form action="/quizzes/duplicate/{{ quiz.id }}" method="POST" class="col-span-1">
                             <button type="submit"
                                 class="w-full h-10 rounded-xl bg-slate-700/50 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 flex items-center justify-center transition-colors border border-white/5 hover:border-indigo-500/30"
@@ -268,7 +356,6 @@
                             </button>
                         </form>
 
-                        <!-- Edit -->
                         <a href="/quizzes/{{ quiz.id }}/edit"
                             class="col-span-1 h-10 rounded-xl bg-slate-700/50 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 flex items-center justify-center transition-colors border border-white/5 hover:border-indigo-500/30"
                             title="Düzenle">
@@ -278,7 +365,6 @@
                             </svg>
                         </a>
 
-                        <!-- Start -->
                         <a href="/host/{{ quiz.id }}"
                             class="col-span-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm tracking-wide flex items-center justify-center shadow-lg shadow-indigo-600/20 transition-all border border-indigo-500/50 group-hover:scale-105 active:scale-95">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -291,7 +377,7 @@
             </div>
             {% endfor %}
 
-            <!-- New Quiz Card (Always visible at end) -->
+            <!-- New Quiz Card -->
             <button @click="showCreateSelection = true" x-show="!search"
                 class="group relative rounded-3xl border-2 border-dashed border-slate-700/50 hover:border-indigo-500/50 bg-slate-900/20 hover:bg-indigo-500/5 transition-all flex flex-col items-center justify-center text-center p-8 min-h-[320px] cursor-pointer overflow-hidden w-full">
 
@@ -311,31 +397,16 @@
                 <p class="text-sm text-slate-500 mt-2 max-w-[200px] group-hover:text-slate-400">Kendi sorularınla
                     interaktif bir yarışma oluştur.</p>
             </button>
-
         </div>
 
-        <!-- Empty State -->
-        <div x-show="search && $el.previousElementSibling.querySelectorAll('[x-show]').length === 0"
-            class="text-center py-24 glass-panel rounded-3xl mx-auto max-w-lg hidden">
-            <!-- Hidden by default, toggled by search filter logic if possible or just use a simpler check -->
-            <div
-                class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-500">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-            <h3 class="text-lg font-medium text-white">Sonuç Bulunamadı</h3>
-            <p class="text-slate-500">Aradığınız kriterlere uygun bir yarışma yok.</p>
-        </div>
-
-        <!-- Prevent Footer overlap -->
         <div class="h-24"></div>
 
     </div>
 
+    <!-- Modals -->
+
     <!-- Preview Modal -->
-    <div x-show="showPreview" style="display: none;"
+    <div x-show="showPreview" role="dialog" aria-modal="true" x-cloak
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         @click.self="showPreview = false" x-transition.opacity>
 
@@ -344,20 +415,17 @@
             x-transition:enter-start="opacity-0 scale-95 translate-y-4"
             x-transition:enter-end="opacity-100 scale-100 translate-y-0">
 
-            <!-- Close Button -->
             <button @click="showPreview = false"
                 class="absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 transition">
                 &times;
             </button>
 
-            <!-- Loading State -->
             <div x-show="previewLoading" class="flex-1 flex flex-col items-center justify-center text-slate-500">
                 <div class="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4">
                 </div>
                 Loading preview...
             </div>
 
-            <!-- Content -->
             <div x-show="!previewLoading && previewQuiz" class="flex-1 flex flex-col h-full">
                 <!-- Header -->
                 <div class="p-8 pb-4 border-b border-slate-800">
@@ -385,7 +453,6 @@
                             <div class="text-slate-500 font-bold text-xl w-8 flex-shrink-0" x-text="idx + 1"></div>
                             <div class="flex-1">
                                 <h3 class="font-bold text-white mb-3" x-text="q.text || 'Question Text'"></h3>
-
                                 <div class="grid grid-cols-2 gap-2">
                                     <template x-for="opt in q.options">
                                         <div class="text-sm p-3 rounded-lg border flex items-center gap-2"
@@ -401,7 +468,6 @@
                     </template>
                 </div>
 
-                <!-- Footer Action -->
                 <div class="p-6 border-t border-slate-800 bg-slate-900 flex justify-end gap-3">
                     <button @click="showPreview = false"
                         class="px-4 py-2 text-slate-400 hover:text-white transition font-bold">Kapat</button>
@@ -413,59 +479,9 @@
             </div>
         </div>
     </div>
-    <!-- Upload Modal -->
-    <div x-show="showUpload" style="display: none;"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-        @click.self="showUpload = false" x-transition.opacity>
-
-        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative flex flex-col gap-6"
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
-            x-transition:enter-end="opacity-100 scale-100 translate-y-0">
-
-            <button @click="showUpload = false"
-                class="absolute top-4 right-4 text-slate-500 hover:text-white transition text-2xl">×</button>
-
-            <div>
-                <h2 class="text-2xl font-bold text-white mb-2">Excel İle Yarışma Yükle</h2>
-                <p class="text-slate-400 text-sm">Hazırladığınız Excel dosyasını yükleyerek hızlıca yarışma oluşturun.
-                    <a href="/api/import/template" download
-                        class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">Şablonu İndir</a>
-                </p>
-            </div>
-
-            <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 bg-slate-800/30 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition group"
-                @click="$refs.excelInput.click()">
-
-                <input type="file" x-ref="excelInput" class="hidden" accept=".xlsx" @change="uploadExcel($event)">
-
-                <div
-                    class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition">
-                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                </div>
-
-                <p x-show="!uploading" class="font-bold text-slate-300 group-hover:text-white transition">Dosya Seç veya
-                    Sürükle</p>
-                <p x-show="uploading" class="font-bold text-indigo-400 animate-pulse">Yükleniyor...</p>
-                <p class="text-xs text-slate-500 mt-2">Sadece .xlsx formatı</p>
-            </div>
-
-            <div class="bg-indigo-900/20 border border-indigo-500/20 rounded-lg p-4 flex gap-3 items-start">
-                <div class="text-indigo-400 mt-0.5">ℹ️</div>
-                <div class="text-xs text-indigo-300/80 leading-relaxed">
-                    İpucu: Şablondaki sütun isimlerini değiştirmeyin. "Doğru Cevap" sütununa sadece A, B, C veya D
-                    yazın. Süre saniye cinsindendir.
-                </div>
-            </div>
-
-        </div>
-    </div>
 
     <!-- Create Selection Modal -->
-    <div x-show="showCreateSelection" style="display: none;"
+    <div x-show="showCreateSelection" role="dialog" aria-modal="true" x-cloak
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         @click.self="showCreateSelection = false" x-transition.opacity>
 
@@ -532,8 +548,8 @@
         </div>
     </div>
 
-    <!-- AI Generator Modal -->
-    <div x-show="showAiModal" style="display: none;"
+    <!-- AI Modal -->
+    <div x-show="showAiModal" role="dialog" aria-modal="true" x-cloak
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         @click.self="showAiModal = false" x-transition.opacity>
 
@@ -545,7 +561,6 @@
             <button @click="showAiModal = false"
                 class="absolute top-4 right-4 text-slate-500 hover:text-white transition text-2xl">×</button>
 
-            <!-- Loading Overlay -->
             <div x-show="aiLoading"
                 class="absolute inset-0 z-50 bg-slate-900/90 flex flex-col items-center justify-center rounded-2xl">
                 <div class="text-6xl mb-4 animate-bounce">✨</div>
@@ -561,7 +576,6 @@
             </div>
 
             <div class="space-y-4">
-                <!-- Topic -->
                 <div>
                     <label class="block text-sm font-bold text-slate-400 mb-2">Yarışma Konusu</label>
                     <input type="text" x-model="aiTopic"
@@ -570,7 +584,6 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- Difficulty -->
                     <div>
                         <label class="block text-sm font-bold text-slate-400 mb-2">Zorluk</label>
                         <select x-model="aiDifficulty"
@@ -581,7 +594,6 @@
                         </select>
                     </div>
 
-                    <!-- Count -->
                     <div>
                         <label class="block text-sm font-bold text-slate-400 mb-2">Soru Sayısı: <span
                                 x-text="aiCount"></span></label>
@@ -595,114 +607,59 @@
                 class="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg shadow-lg shadow-purple-600/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
                 <span>🪄</span> <span>Yarışmayı Yarat</span>
             </button>
-
         </div>
     </div>
-    <script>
-        function getHostData() {
-            return {
-                search: '',
-                hasQuizzes: {{ 'true' if quizzes else 'false' }
-        },
-        showPreview: false,
-            previewQuiz: null,
-                previewLoading: false,
 
-                    // State
-                    showCreateSelection: false,
+    <!-- Upload Modal -->
+    <div x-show="showUpload" role="dialog" aria-modal="true" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        @click.self="showUpload = false" x-transition.opacity>
 
-                        // Excel Upload State
-                        showUpload: false,
-                            uploading: false,
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl p-8 relative flex flex-col gap-6"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0">
 
-                                // AI Generator State
-                                showAiModal: false,
-                                    aiLoading: false,
-                                        aiTopic: '',
-                                            aiCount: 10,
-                                                aiDifficulty: 'medium',
+            <button @click="showUpload = false"
+                class="absolute top-4 right-4 text-slate-500 hover:text-white transition text-2xl">×</button>
 
-                                                    init() {
-            console.log('BiSual Host Dashboard: Mounted!');
-        },
+            <div>
+                <h2 class="text-2xl font-bold text-white mb-2">Excel İle Yarışma Yükle</h2>
+                <p class="text-slate-400 text-sm">Hazırladığınız Excel dosyasını yükleyerek hızlıca yarışma oluşturun.
+                    <a href="/api/import/template" download
+                        class="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">Şablonu İndir</a>
+                </p>
+            </div>
 
-                async createAiQuiz() {
-            if (!this.aiTopic) return alert('Lütfen bir konu girin.');
-            this.aiLoading = true;
-            try {
-                const res = await fetch('/api/ai/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        topic: this.aiTopic,
-                        count: parseInt(this.aiCount),
-                        difficulty: this.aiDifficulty
-                    })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Sihir tamamlandı! ✨ Yarışma oluşturuldu.');
-                    window.location.reload();
-                } else {
-                    alert('Hata: ' + (data.detail || 'Bilinmeyen hata'));
-                }
-            } catch (e) {
-                alert('Sunucu hatası.');
-                console.error(e);
-            } finally {
-                this.aiLoading = false;
-                this.showAiModal = false;
-            }
-        },
+            <div class="border-2 border-dashed border-slate-700 hover:border-indigo-500/50 bg-slate-800/30 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition group"
+                @click="$refs.excelInput.click()">
 
-                async openPreview(id) {
-            this.showPreview = true;
-            this.previewLoading = true;
-            this.previewQuiz = null;
-            try {
-                const res = await fetch('/api/quizzes/' + id);
-                if (res.ok) {
-                    this.previewQuiz = await res.json();
-                } else {
-                    alert('Yarışma detayları yüklenemedi.');
-                    this.showPreview = false;
-                }
-            } catch (e) {
-                console.error(e);
-                this.showPreview = false;
-            } finally {
-                this.previewLoading = false;
-            }
-        },
+                <input type="file" x-ref="excelInput" class="hidden" accept=".xlsx" @change="uploadExcel($event)">
 
-                async uploadExcel(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            this.uploading = true;
-            try {
-                const res = await fetch('/api/import/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    alert('Yarışma başarıyla oluşturuldu! (' + data.questions_count + ' soru)');
-                    window.location.reload();
-                } else {
-                    alert('Hata: ' + data.detail);
-                }
-            } catch (e) {
-                alert('Sunucu hatası oluştu.');
-            } finally {
-                this.uploading = false;
-                this.showUpload = false;
-            }
-        }
-            };
-        }
-    </script>
+                <div
+                    class="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 text-indigo-500 group-hover:scale-110 transition">
+                    <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+
+                <p x-show="!uploading" class="font-bold text-slate-300 group-hover:text-white transition">Dosya Seç veya
+                    Sürükle</p>
+                <p x-show="uploading" class="font-bold text-indigo-400 animate-pulse">Yükleniyor...</p>
+                <p class="text-xs text-slate-500 mt-2">Sadece .xlsx formatı</p>
+            </div>
+
+            <div class="bg-indigo-900/20 border border-indigo-500/20 rounded-lg p-4 flex gap-3 items-start">
+                <div class="text-indigo-400 mt-0.5">ℹ️</div>
+                <div class="text-xs text-indigo-300/80 leading-relaxed">
+                    İpucu: Şablondaki sütun isimlerini değiştirmeyin. "Doğru Cevap" sütununa sadece A, B, C veya D
+                    yazın. Süre saniye cinsindendir.
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 
-</html>```
+</html>
