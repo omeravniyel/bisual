@@ -729,60 +729,65 @@
                         }
                     };
 
-                    submitAnswer(answer) {
-                        if (this.state !== 'ANSWERING') return;
+                    this.ws.onclose = () => {
+                        console.log("Disconnected");
+                    };
+                },
 
-                        // Haptic Feedback
-                        if (navigator.vibrate) navigator.vibrate(50);
+                submitAnswer(answer) {
+                    if (this.state !== 'ANSWERING') return;
 
-                        const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
-                        const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);
+                    // Haptic Feedback
+                    if (navigator.vibrate) navigator.vibrate(50);
 
-                        this.ws.send(JSON.stringify({
-                            type: 'SUBMIT_ANSWER',
-                            answer: answer,
-                            time_left: estTimeLeft
-                        }));
+                    const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
+                    const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);
 
-                        this.state = 'ANSWER_SENT';
-                    },
+                    this.ws.send(JSON.stringify({
+                        type: 'SUBMIT_ANSWER',
+                        answer: answer,
+                        time_left: estTimeLeft
+                    }));
 
-                    setPin(event) {
-                        const rect = event.target.getBoundingClientRect(); // Get image rect
-                        const x = ((event.clientX - rect.left) / rect.width) * 100;
-                        const y = ((event.clientY - rect.top) / rect.height) * 100;
-                        this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
-                    },
+                    this.state = 'ANSWER_SENT';
+                },
 
-                    getMyRank() {
-                        const idx = this.leaderboardData.findIndex(p => p.nickname === this.nickname);
-                        return idx >= 0 ? idx + 1 : '-';
-                    },
+                setPin(event) {
+                    const rect = event.target.getBoundingClientRect(); // Get image rect
+                    const x = ((event.clientX - rect.left) / rect.width) * 100;
+                    const y = ((event.clientY - rect.top) / rect.height) * 100;
+                    this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
+                },
 
-                    startTimer(seconds) {
-                        clearInterval(this.timerInterval);
-                        this.timerPercent = 100;
-                        this.timerValue = seconds; // Set text timer
+                getMyRank() {
+                    const idx = this.leaderboardData.findIndex(p => p.nickname === this.nickname);
+                    return idx >= 0 ? idx + 1 : '-';
+                },
 
-                        const startTime = Date.now();
-                        const endTime = startTime + (seconds * 1000);
+                startTimer(seconds) {
+                    clearInterval(this.timerInterval);
+                    this.timerPercent = 100;
+                    this.timerValue = seconds; // Set text timer
 
-                        this.timerInterval = setInterval(() => {
-                            const now = Date.now();
-                            const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
-                            this.timerValue = remaining;
-                            this.timerPercent = (remaining / seconds) * 100;
+                    const startTime = Date.now();
+                    const endTime = startTime + (seconds * 1000);
 
-                            if (remaining <= 0) {
-                                clearInterval(this.timerInterval);
-                                if (this.state === 'ANSWERING') {
-                                    this.state = 'ANSWER_SENT'; // Times up
-                                }
+                    this.timerInterval = setInterval(() => {
+                        const now = Date.now();
+                        const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+                        this.timerValue = remaining;
+                        this.timerPercent = (remaining / seconds) * 100;
+
+                        if (remaining <= 0) {
+                            clearInterval(this.timerInterval);
+                            if (this.state === 'ANSWERING') {
+                                this.state = 'ANSWER_SENT'; // Times up
                             }
-                        }, 100);
-                    }
+                        }
+                    }, 100);
                 }
             }
+        }
     </script>
 </body>
 

@@ -25,14 +25,24 @@ class GameSession:
         self.current_shuffled_options = [] # Store options order for current question
 
     async def broadcast(self, message: dict):
+        import asyncio
         # Send to Host
-        await self.host_websocket.send_json(message)
-        # Send to Players
+        try:
+            await self.host_websocket.send_json(message)
+        except: pass
+        
+        # Send to Players (Parallel)
+        tasks = []
         for player in self.players.values():
-            try:
-                await player.websocket.send_json(message)
-            except:
-                pass # Handle disconnected players later
+            tasks.append(self._safe_send(player.websocket, message))
+        
+        if tasks:
+            await asyncio.gather(*tasks)
+
+    async def _safe_send(self, ws, message):
+         try:
+             await ws.send_json(message)
+         except: pass
 
 class GameManager:
     def __init__(self):
