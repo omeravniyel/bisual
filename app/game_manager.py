@@ -196,11 +196,11 @@ class GameManager:
         
         await self.broadcast_to_players(session, {
             "type": "NEW_QUESTION",
-            "text": q['text'] if show_on_phone else "", # Hide text if setting OFF
+            "text": q['text'] if show_on_phone else "", # Hide text if setting OFF, but options always ON now?
             "time": q['time'],
             "q_type": q['type'],
             "image": q.get('image') if show_on_phone else None,
-            "options": [o['text'] for o in options] if show_on_phone else [], # Send labels only if ON
+            "options": [o['text'] for o in options], # Always send options text
             "options_count": len(options)
         })
 
