@@ -312,7 +312,7 @@
 
             <!-- Players Grid -->
             <div class="w-full max-w-6xl px-8 flex flex-wrap justify-center gap-4 overflow-y-auto max-h-[40vh] py-4">
-                <template x-for="(player, index) in players" :key="player">
+                <template x-for="(player, index) in players" :key="player.nickname || player">
                     <div class="player-chip px-6 py-3 rounded-full text-xl font-bold text-white shadow-[0_0_15px_rgba(0,0,0,0.3)] animate-[bounce_0.5s_ease-out] border-2 flex items-center gap-2"
                         :class="[
                             'border-pink-500 shadow-pink-500/40 bg-pink-500/10',
@@ -323,10 +323,10 @@
                         ][index % 5]" x-transition:enter="transition ease-out duration-300"
                         x-transition:enter-start="opacity-0 scale-0" x-transition:enter-end="opacity-100 scale-100">
 
-                        <!-- Avatar Icon (Random based on index) -->
-                        <span x-text="['👽','👾','🤖','🐱','🐶','🦁','🐯','🐨'][index % 8]" class="text-2xl"></span>
+                        <!-- Avatar Icon -->
+                        <span x-text="player.avatar || '👤'" class="text-2xl"></span>
 
-                        <span x-text="player" class="tracking-wide"></span>
+                        <span x-text="player.nickname || player" class="tracking-wide"></span>
                     </div>
                 </template>
                 <div x-show="players.length === 0" class="flex flex-col items-center gap-4 py-8 opacity-60">
@@ -446,10 +446,13 @@
                                 :class="index === 0 ? 'text-yellow-400' : (index === 1 ? 'text-slate-300' : (index === 2 ? 'text-orange-400' : 'text-slate-500'))"
                                 x-text="index + 1"></span>
 
-                            <div class="flex flex-col">
-                                <span x-text="entry.nickname" class="text-2xl font-bold text-white"></span>
-                                <span x-show="index===0"
-                                    class="text-xs text-yellow-400 font-bold tracking-widest uppercase">Lider</span>
+                            <div class="flex items-center gap-3">
+                                <span class="text-3xl" x-text="entry.avatar || '👤'"></span>
+                                <div class="flex flex-col">
+                                    <span x-text="entry.nickname" class="text-2xl font-bold text-white"></span>
+                                    <span x-show="index===0"
+                                        class="text-xs text-yellow-400 font-bold tracking-widest uppercase">Lider</span>
+                                </div>
                             </div>
                         </div>
                         <div class="font-mono font-black text-3xl text-indigo-300" x-text="entry.score"></div>
