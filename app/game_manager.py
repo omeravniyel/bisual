@@ -91,9 +91,23 @@ class GameManager:
         return self.active_games.get(pin)
 
     async def join_game(self, pin: str, nickname: str, player_ws: WebSocket, avatar: str = "👤") -> bool:
+        import html
+        
         if pin in self.active_games:
             session = self.active_games[pin]
-            # Simple unique ID for player connection (can use ws object or random ID)
+            
+            # Security & Validation
+            nickname = html.escape(nickname.strip())[:15] # Sanitize & Limit
+            avatar = html.escape(avatar)[:4] # Limit avatar just in case
+            
+            # Prevent Duplicate Nicknames (Simple Append)
+            original_nick = nickname
+            counter = 1
+            while nickname in session.players:
+                nickname = f"{original_nick[:12]}{counter}"
+                counter += 1
+            
+            # Simple unique ID for player connection
             p = Player(nickname, player_ws)
             p.avatar = avatar
             session.players[nickname] = p
@@ -101,6 +115,7 @@ class GameManager:
             # Notify Host about new player
             players_list = [{"nickname": p.nickname, "avatar": p.avatar} for p in session.players.values()]
             
+            # Host Notification
             await session.host_websocket.send_json({
                 "type": "PLAYER_JOINED",
                 "nickname": nickname,
@@ -212,11 +227,21 @@ class GameManager:
         })
 
     async def broadcast_to_players(self, session: GameSession, message: dict):
+        # Optimized broadcasting using asyncio.gather for parallel execution
+        import asyncio
+        tasks = []
         for player in session.players.values():
-            try:
-                await player.websocket.send_json(message)
-            except:
-                pass
+            tasks.append(self._safe_send(player.websocket, message))
+        
+        if tasks:
+            await asyncio.gather(*tasks)
+
+    async def _safe_send(self, ws: WebSocket, message: dict):
+        try:
+            await ws.send_json(message)
+        except:
+            # Handle disconnects silently or log if needed
+            pass
 
     async def handle_answer(self, pin: str, nickname: str, answer: any, time_left: int):
         if pin in self.active_games:
