@@ -135,7 +135,10 @@ async def upload_image(file: UploadFile = File(...)):
     return {"url": f"/uploads/{filename}"}
 
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
+async def read_root(request: Request, pin: str = None):
+    if pin:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/play?pin={pin}")
     return templates.TemplateResponse("index.html", {"request": request, "title": "BiSual Home"})
 
 if __name__ == "__main__":

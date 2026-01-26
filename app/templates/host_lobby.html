@@ -702,7 +702,7 @@
 
                         // Generate QR Code
                         setTimeout(() => {
-                            const joinUrl = `http://${this.hostIp}:${this.port}/?pin=${this.pin}`;
+                            const joinUrl = `http://${this.hostIp}:${this.port}/play?pin=${this.pin}`;
                             new QRCode(document.getElementById("qrcode"), {
                                 text: joinUrl,
                                 width: 128,
