@@ -1,14 +1,15 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+# from fastapi.templating import Jinja2Templates
+from app.core.templates import templates
 from sqlalchemy.orm import Session
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from .. import models, schemas
 from ..game_manager import game_manager
 import json
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+# templates = Jinja2Templates(directory="app/templates")
 
 @router.get("/play", response_class=HTMLResponse)
 async def player_join_page(request: Request, pin: str = None):
@@ -24,46 +25,62 @@ async def player_join_page(request: Request, pin: str = None):
     })
 
 @router.websocket("/ws/host/{quiz_id}")
-async def websocket_host(websocket: WebSocket, quiz_id: int, db: Session = Depends(get_db)):
+async def websocket_host(websocket: WebSocket, quiz_id: int):
     await websocket.accept()
+    print(f"WS HOST: Connection accepted for quiz {quiz_id}")
     
-    # Fetch Quiz Data
-    quiz = db.query(models.Quiz).filter(models.Quiz.id == quiz_id).first()
-    if not quiz:
-        await websocket.close(code=4004)
-        return
-
-    # Convert complex SQLAlchemy object to simple dict for game logic
-    # In a real app, use Pydantic helpers, here we do it manually for speed/simplicity
-    quiz_data = {
-        "id": quiz.id,
-        "title": quiz.title,
-        "theme": quiz.theme,
-        "settings": quiz.settings or {},
-        "questions": []
-    }
-    for q in quiz.questions:
-        q_data = {
-            "text": q.text,
-            "time": q.time_limit,
-            "points": q.points,
-            "type": q.question_type,
-            "image": q.image_url,
-            "options": [{"text": o.text, "is_correct": o.is_correct} for o in q.options]
-        }
-        quiz_data["questions"].append(q_data)
-
-    # Creative Game Session
-    pin = await game_manager.create_game(quiz_data, websocket)
+    # Manual Session Management
+    db = SessionLocal()
     
-    # Send PIN to Host
-    await websocket.send_json({
-        "type": "GAME_CREATED", 
-        "pin": pin,
-        "settings": quiz.settings or {}
-    })
-
     try:
+        from sqlalchemy.orm import joinedload
+        
+        # Fetch Quiz Data Eagerly to prevent lazy load errors
+        print(f"WS HOST: Fetching quiz {quiz_id}...")
+        quiz = db.query(models.Quiz).options(
+            joinedload(models.Quiz.questions).joinedload(models.Question.options)
+        ).filter(models.Quiz.id == quiz_id).first()
+        
+        if not quiz:
+            print(f"WS HOST: Quiz {quiz_id} not found")
+            await websocket.close(code=4004)
+            return
+
+        print(f"WS HOST: Quiz found: {quiz.title}")
+        
+        # Convert to dict
+        quiz_data = {
+            "id": quiz.id,
+            "title": quiz.title,
+            "theme": quiz.theme,
+            "settings": quiz.settings or {},
+            "questions": []
+        }
+        
+        for q in quiz.questions:
+            q_data = {
+                "text": q.text,
+                "time": q.time_limit,
+                "points": q.points,
+                "type": q.question_type,
+                "image": q.image_url,
+                "options": [{"text": o.text, "is_correct": o.is_correct} for o in q.options]
+            }
+            quiz_data["questions"].append(q_data)
+
+        # Creative Game Session
+        print("WS HOST: Creating game session...")
+        pin = await game_manager.create_game(quiz_data, websocket)
+        print(f"WS HOST: Game created with PIN {pin}")
+        
+        # Send PIN to Host
+        await websocket.send_json({
+            "type": "GAME_CREATED", 
+            "pin": pin,
+            "settings": quiz.settings or {}
+        })
+        
+        # Loop
         while True:
             data = await websocket.receive_text()
             cmd = json.loads(data)
@@ -76,7 +93,19 @@ async def websocket_host(websocket: WebSocket, quiz_id: int, db: Session = Depen
                 await game_manager.show_leaderboard(pin)
 
     except WebSocketDisconnect:
-        game_manager.remove_game(pin)
+        print(f"WS HOST: Disconnected quiz {quiz_id}")
+        if 'pin' in locals():
+            game_manager.remove_game(pin)
+    except Exception as e:
+        print(f"WS HOST CRITICAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            await websocket.close(code=1011)
+        except: pass
+    finally:
+        print(f"WS HOST: Closing DB session for {quiz_id}")
+        db.close()
 
 @router.websocket("/ws/player/{pin}/{nickname}")
 async def websocket_player(websocket: WebSocket, pin: str, nickname: str):

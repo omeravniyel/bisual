@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas
 from ..database import get_db
-from fastapi.templating import Jinja2Templates
+from ..database import get_db
+from app.core.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+# templates = Jinja2Templates(directory="app/templates") -> REMOVED
 
 @router.post("/quizzes/", response_model=schemas.Quiz)
 def create_quiz(quiz: schemas.QuizCreate, request: Request, db: Session = Depends(get_db)):
@@ -95,7 +96,8 @@ async def host_list_page(request: Request, db: Session = Depends(get_db)):
         return templates.TemplateResponse("host_list.html", {
             "request": request, 
             "quizzes": quizzes,
-            "total_questions": total_questions
+            "total_questions": total_questions,
+            "user": user_obj
         })
     except Exception as e:
         import traceback

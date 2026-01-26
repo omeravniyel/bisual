@@ -158,6 +158,7 @@ class GameManager:
     async def handle_answer(self, pin: str, nickname: str, answer: any, time_left: int):
         if pin in self.active_games:
             session = self.active_games[pin]
+            player = session.players.get(nickname)
             if not player: return
             
             # Record that player answered

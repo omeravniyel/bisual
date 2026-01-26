@@ -6,41 +6,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BiSual - Yarışma Oluştur</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/theme.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #f2f2f2;
+            background-color: #020617;
+            color: #f8fafc;
             overflow: hidden;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        html:not(.dark) body {
+            background-color: #f1f5f9;
+            color: #1e293b;
         }
 
         /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
+            height: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #0f172a;
+        }
+
+        html:not(.dark) ::-webkit-scrollbar-track {
+            background: #e2e8f0;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
+            background: #334155;
             border-radius: 4px;
         }
 
+        html:not(.dark) ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+        }
+
         ::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+            background: #475569;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
         .slide-card {
             transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        html:not(.dark) .slide-card:hover {
+            background-color: #e2e8f0;
+        }
+
+        html.dark .slide-card:hover {
+            /* Assuming there was a hover effect or default styling */
+            background-color: rgba(255, 255, 255, 0.05);
         }
 
         .slide-card.active {
-            border-color: #46178f;
-            box-shadow: 0 0 0 2px #46178f;
-            background-color: #f0f4ff;
+            border-color: #6366f1;
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        html:not(.dark) .slide-card.active {
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Indigo 500 */
+        box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        background-color: rgba(99, 102, 241, 0.1);
         }
 
         .answer-input-container {
@@ -49,7 +101,7 @@
 
         .answer-input-container:focus-within {
             transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
     </style>
     <script>
@@ -64,74 +116,91 @@
     </script>
 </head>
 
-<body class="h-screen flex flex-col" x-data="quizEditor">
+<body class="h-screen flex flex-col relative" x-data="quizEditor">
+
+    <!-- Background Gradients -->
+    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px]">
+        </div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px]">
+        </div>
+    </div>
 
     <!-- TOP NAVBAR -->
-    <nav class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-4 z-20 shadow-sm shrink-0">
+    <nav class="h-16 glass-panel border-b-0 flex justify-between items-center px-6 z-20 shadow-lg shrink-0">
         <div class="flex items-center gap-4">
-            <div class="w-8 h-8 bg-indigo-600 rounded-sm"></div> <!-- Logo Placeholder -->
+            <a href="/host"
+                class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg hover:scale-110 transition cursor-pointer">
+                <span class="text-white font-bold">B</span>
+            </a>
             <input type="text" x-model="quiz.title"
-                class="font-bold text-lg border border-transparent hover:border-gray-300 rounded px-2 py-1 outline-none focus:border-indigo-600 transition"
+                class="bg-transparent font-bold text-lg border border-transparent hover:border-slate-700 focus:border-indigo-500 rounded px-3 py-1.5 outline-none transition text-white placeholder-slate-500 w-64"
                 placeholder="Yarışma başlığı gir...">
 
             <button @click="showSettings = true"
-                class="bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-sm font-bold text-gray-700 transition">Ayarlar</button>
+                class="bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition flex items-center gap-2">
+                <span>⚙️</span> Ayarlar
+            </button>
         </div>
 
         <div class="flex gap-3">
             <button @click="window.location.href='/'"
-                class="px-4 py-2 font-bold text-gray-500 hover:bg-gray-100 rounded transition">Çık</button>
+                class="px-4 py-2 font-bold text-slate-400 hover:text-white hover:bg-white/5 rounded-lg transition">Çık</button>
             <button @click="saveQuiz()"
-                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded font-bold transition shadow-sm">Kaydet</button>
+                class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2 rounded-xl font-bold transition shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2">
+                <span>💾</span> Kaydet
+            </button>
         </div>
     </nav>
 
     <!-- MAIN EDITOR AREA -->
-    <div class="flex-1 flex overflow-hidden">
+    <div class="flex-1 flex overflow-hidden z-10 relative">
 
         <!-- LEFT SIDEBAR (SLIDES) -->
-        <div class="w-48 bg-white border-r border-gray-200 flex flex-col p-2 overflow-y-auto shrink-0">
+        <div
+            class="w-52 glass-panel border-r-0 border-r border-slate-800 flex flex-col p-3 overflow-y-auto shrink-0 space-y-3 custom-scrollbar">
             <div class="flex flex-col gap-3">
                 <template x-for="(q, index) in quiz.questions" :key="index">
                     <div @click="currentIndex = index"
-                        class="slide-card p-3 rounded-lg border-2 border-gray-200 cursor-pointer relative group flex flex-col gap-2 h-28 hover:bg-gray-50 bg-white"
+                        class="slide-card p-3 rounded-xl border border-slate-700 cursor-pointer relative group flex flex-col gap-2 h-28 hover:bg-slate-800/80 bg-slate-900/50"
                         :class="{'active': currentIndex === index}">
 
-                        <div class="text-xs font-bold text-gray-500 flex justify-between">
-                            <span x-text="index + 1"></span>
+                        <div class="text-[10px] font-bold text-slate-500 flex justify-between uppercase tracking-wider">
+                            <span x-text="index + 1" class="bg-slate-800 px-1.5 py-0.5 rounded"></span>
                             <button @click.stop="removeQuestion(index)"
-                                class="opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-100 rounded px-1">🗑️</button>
+                                class="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded px-1 transition">🗑️</button>
                         </div>
 
                         <!-- Mini Preview -->
-                        <div class="flex-1 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                            <span class="text-[0.5rem] text-gray-400 text-center px-1 truncate"
+                        <div
+                            class="flex-1 bg-slate-800/50 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700/50">
+                            <span class="text-[0.6rem] text-slate-400 text-center px-1 truncate"
                                 x-text="q.text || 'Soru ...'"></span>
                         </div>
 
-                        <div class="flex justify-center gap-0.5">
-                            <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500"></div>
-                            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <div class="flex justify-center gap-1">
+                            <div class="w-1.5 h-1.5 rounded-full bg-red-500/80"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-blue-500/80"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-yellow-500/80"></div>
+                            <div class="w-1.5 h-1.5 rounded-full bg-green-500/80"></div>
                         </div>
                     </div>
                 </template>
             </div>
 
             <button @click="addQuestion()"
-                class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded shadow-lg font-bold transition transform active:scale-95">
-                + Soru Ekle
+                class="mt-4 bg-slate-800 hover:bg-indigo-600 border border-slate-700 hover:border-indigo-500 text-slate-300 hover:text-white py-3 rounded-xl font-bold transition shadow-lg text-sm flex items-center justify-center gap-2 group">
+                <span class="group-hover:scale-110 transition">+</span> Soru Ekle
             </button>
 
-            <div class="mt-4 flex gap-2">
+            <div class="mt-2 flex gap-2">
                 <button @click="showAiModal = true"
-                    class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-bold text-xs"
+                    class="flex-1 bg-gradient-to-br from-purple-900/50 to-purple-600/20 hover:from-purple-600 hover:to-purple-500 border border-purple-500/30 hover:border-purple-400 text-purple-200 hover:text-white py-2 rounded-xl font-bold text-xs transition"
                     title="AI ile Ekle">
                     ✨ AI
                 </button>
                 <button @click="showExcelModal = true"
-                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-bold text-xs"
+                    class="flex-1 bg-gradient-to-br from-emerald-900/50 to-emerald-600/20 hover:from-emerald-600 hover:to-emerald-500 border border-emerald-500/30 hover:border-emerald-400 text-emerald-200 hover:text-white py-2 rounded-xl font-bold text-xs transition"
                     title="Excel'den Ekle">
                     📊 Excel
                 </button>
@@ -139,51 +208,56 @@
         </div>
 
         <!-- CENTER CANVAS -->
-        <div class="flex-1 bg-gray-100 p-8 flex flex-col items-center overflow-y-auto relative transition-all duration-500"
+        <div class="flex-1 bg-slate-950 p-8 flex flex-col items-center overflow-y-auto relative transition-all duration-500 custom-scrollbar"
             :class="{
                 'bg-[url(\'https://www.transparenttextures.com/patterns/cubes.png\')]': quiz.theme === 'standard',
-                'bg-blue-100': quiz.theme === 'winter',
-                'bg-green-100': quiz.theme === 'spring',
-                'bg-yellow-100': quiz.theme === 'summer',
-                'bg-orange-100': quiz.theme === 'autumn',
-                'bg-gradient-to-br from-blue-500 to-yellow-400': quiz.theme === 'ukraine'
+                'bg-blue-950': quiz.theme === 'winter',
+                'bg-emerald-950': quiz.theme === 'spring',
+                'bg-amber-950': quiz.theme === 'summer',
+                'bg-orange-950': quiz.theme === 'autumn',
+                'bg-slate-900': quiz.theme === 'ukraine'
              }">
 
-            <div class="w-full max-w-4xl flex-1 flex flex-col gap-6">
+            <!-- Canvas Overlay for Readability -->
+            <div class="absolute inset-0 bg-black/20 pointer-events-none"></div>
+
+            <div class="w-full max-w-5xl flex-1 flex flex-col gap-6 z-10">
 
                 <!-- Question Input -->
-                <div class="bg-white p-2 rounded shadow-sm">
+                <div class="glass-panel p-1 rounded-2xl shadow-xl">
                     <input type="text" x-model="currentQuestion.text"
-                        class="w-full text-center text-3xl font-bold p-4 outline-none placeholder-gray-300 text-gray-800"
+                        class="w-full text-center text-3xl font-bold p-6 bg-transparent outline-none placeholder-slate-600 text-white rounded-xl focus:bg-slate-800/50 transition"
                         placeholder="Sorunu girmeye başla">
                 </div>
 
                 <!-- Media Area -->
-                <div class="flex-1 bg-white rounded flex items-center justify-center min-h-[300px] border-2 border-dashed border-gray-300 relative group cursor-pointer hover:border-indigo-400 transition hover:bg-indigo-50"
+                <div class="flex-1 glass-panel rounded-2xl flex items-center justify-center min-h-[300px] border-2 border-dashed border-slate-700 hover:border-indigo-500 relative group cursor-pointer transition hover:bg-slate-800/30 overflow-hidden"
                     @click="$refs.fileInput.click()">
 
                     <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="uploadImage($event)">
 
                     <div class="text-center">
-                        <div class="text-6xl mb-4 opacity-20">🖼️</div>
-                        <div class="font-bold text-gray-400 group-hover:text-indigo-500"
+                        <div class="text-6xl mb-4 opacity-30 grayscale group-hover:grayscale-0 transition duration-500">
+                            🖼️</div>
+                        <div class="font-bold text-slate-500 group-hover:text-indigo-400"
                             x-show="!currentQuestion.image_url">
-                            Resim Yükle<br>
-                            <span class="text-xs font-normal opacity-70">(veya sürükle bırak)</span>
+                            Görsel Yükle<br>
+                            <span class="text-xs font-normal opacity-50">(veya sürükle bırak)</span>
                         </div>
                     </div>
 
                     <!-- Image Preview -->
                     <div x-show="currentQuestion.image_url"
-                        class="absolute inset-0 w-full h-full bg-gray-50 group-hover:opacity-50 transition p-4">
-                        <img :src="currentQuestion.image_url" class="w-full h-full object-contain">
+                        class="absolute inset-0 w-full h-full bg-slate-900/50 group-hover:opacity-50 transition p-8">
+                        <img :src="currentQuestion.image_url" class="w-full h-full object-contain drop-shadow-2xl">
                     </div>
 
                     <!-- Hover Action -->
                     <div x-show="currentQuestion.image_url"
                         class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">
                         <span
-                            class="bg-indigo-600 text-white px-4 py-2 rounded-full font-bold shadow-lg">Değiştir</span>
+                            class="bg-indigo-600 text-white px-6 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition">Görseli
+                            Değiştir</span>
                     </div>
                 </div>
 
@@ -192,22 +266,26 @@
                 <div class="grid grid-cols-2 gap-4 h-64"
                     x-show="['multiple_choice', 'poll'].includes(currentQuestion.question_type)">
                     <template x-for="(opt, idx) in currentQuestion.options" :key="idx">
-                        <div class="answer-input-container rounded-lg p-3 flex items-center gap-3 shadow-sm group transition"
+                        <div class="answer-input-container rounded-2xl p-2 flex items-center gap-2 shadow-lg group transition relative overflow-hidden"
                             :class="{
                                 'bg-red-600': idx === 0,
                                 'bg-blue-600': idx === 1,
-                                'bg-yellow-500': idx === 2,
-                                'bg-green-600': idx === 3
+                                'bg-amber-500': idx === 2,
+                                'bg-emerald-600': idx === 3
                              }">
-                            <div class="w-10 h-10 flex items-center justify-center text-white text-2xl font-bold"
+                            <!-- Icon -->
+                            <div class="w-12 h-full bg-black/10 flex items-center justify-center text-white text-2xl font-black rounded-l-xl"
                                 x-text="['▲','◆','●','■'][idx]"></div>
-                            <div class="flex-1 h-full bg-white rounded flex items-center px-4 relative">
+
+                            <!-- Input Wrapper -->
+                            <div class="flex-1 h-full bg-white flex items-center px-4 relative rounded-r-xl">
                                 <input type="text" x-model="opt.text"
-                                    class="w-full h-full outline-none font-medium text-gray-700"
-                                    :placeholder="'Cevap ekle ' + (idx+1)">
+                                    class="w-full h-full outline-none font-bold text-lg text-slate-800 placeholder-slate-300"
+                                    :placeholder="'Cevap ' + (idx+1)">
+
                                 <button x-show="currentQuestion.question_type !== 'poll'" @click="toggleCorrect(idx)"
-                                    class="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center ml-2 transition hover:bg-green-50"
-                                    :class="opt.is_correct ? 'bg-green-500 border-green-500 text-white' : 'text-transparent'">
+                                    class="w-8 h-8 rounded-full border-2 flex items-center justify-center ml-2 transition hover:scale-110"
+                                    :class="opt.is_correct ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30' : 'border-slate-200 text-transparent hover:border-slate-300'">
                                     ✓
                                 </button>
                             </div>
@@ -217,60 +295,66 @@
 
                 <!-- True/False Grid -->
                 <div class="grid grid-cols-2 gap-4 h-64" x-show="currentQuestion.question_type === 'true_false'">
-                    <div class="h-full bg-blue-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-lg relative border-4"
-                        :class="currentQuestion.options[0].is_correct ? 'border-green-400' : 'border-transparent'"
+                    <div class="h-full bg-blue-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-xl relative border-4"
+                        :class="currentQuestion.options[0].is_correct ? 'border-white/50 shadow-blue-500/50' : 'border-transparent opacity-80 hover:opacity-100'"
                         @click="setTrueFalse(0)">
-                        <div class="text-white text-4xl font-black mb-2">DOĞRU</div>
-                        <div class="text-blue-200 text-6xl">◆</div>
+                        <div class="text-white text-4xl font-black mb-2 drop-shadow-md">DOĞRU</div>
+                        <div class="text-white/30 text-8xl absolute bottom-[-20px] right-[-10px] rotate-[-15deg]">◆
+                        </div>
                         <div x-show="currentQuestion.options[0].is_correct"
-                            class="absolute top-4 right-4 bg-green-500 text-white rounded-full p-2 text-xl font-bold">✓
+                            class="absolute top-4 right-4 bg-white text-blue-600 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold shadow-lg">
+                            ✓
                         </div>
                     </div>
-                    <div class="h-full bg-red-600 rounded-lg flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-lg relative border-4"
-                        :class="currentQuestion.options[1].is_correct ? 'border-green-400' : 'border-transparent'"
+                    <div class="h-full bg-red-600 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-[1.02] active:scale-95 shadow-xl relative border-4"
+                        :class="currentQuestion.options[1].is_correct ? 'border-white/50 shadow-red-500/50' : 'border-transparent opacity-80 hover:opacity-100'"
                         @click="setTrueFalse(1)">
-                        <div class="text-white text-4xl font-black mb-2">YANLIŞ</div>
-                        <div class="text-red-200 text-6xl">▲</div>
+                        <div class="text-white text-4xl font-black mb-2 drop-shadow-md">YANLIŞ</div>
+                        <div class="text-white/30 text-8xl absolute bottom-[-20px] right-[-10px] rotate-[-15deg]">▲
+                        </div>
                         <div x-show="currentQuestion.options[1].is_correct"
-                            class="absolute top-4 right-4 bg-green-500 text-white rounded-full p-2 text-xl font-bold">✓
+                            class="absolute top-4 right-4 bg-white text-red-600 rounded-full w-10 h-10 flex items-center justify-center text-xl font-bold shadow-lg">
+                            ✓
                         </div>
                     </div>
                 </div>
 
                 <!-- Type Answer -->
-                <div class="w-full h-64 bg-white rounded-lg p-8 flex flex-col items-center justify-center shadow-sm"
+                <div class="w-full h-64 glass-panel rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg"
                     x-show="currentQuestion.question_type === 'typing'">
-                    <h3 class="text-gray-500 font-bold mb-4 uppercase tracking-wider">Doğru Cevabı Yazın</h3>
+                    <h3 class="text-slate-400 font-bold mb-6 uppercase tracking-widest text-sm">Doğru Cevabı Yazın</h3>
                     <input type="text" x-model="currentQuestion.options[0].text"
-                        class="w-full max-w-lg text-center text-3xl font-bold border-b-4 border-gray-300 focus:border-indigo-600 outline-none p-4 transition placeholder-gray-200 text-indigo-600"
+                        class="w-full max-w-lg text-center text-4xl font-black bg-transparent border-b-4 border-slate-700 focus:border-indigo-500 outline-none p-4 transition placeholder-slate-700 text-white"
                         placeholder="Cevap buraya...">
-                    <p class="mt-4 text-xs text-gray-400">Büyük/küçük harf duyarlılığı yoktur.</p>
+                    <p class="mt-6 text-xs text-slate-500">Büyük/küçük harf duyarlılığı yoktur.</p>
                 </div>
 
                 <!-- Pin Drop (Marked Answer) -->
-                <div class="w-full h-auto bg-white rounded-lg p-4 flex flex-col items-center justify-center shadow-sm"
+                <div class="w-full h-auto glass-panel rounded-2xl p-6 flex flex-col items-center justify-center shadow-lg"
                     x-show="currentQuestion.question_type === 'marked_answer'">
-                    <div class="text-center mb-4">
-                        <h3 class="text-gray-500 font-bold uppercase tracking-wider">Doğru Yeri İşaretleyin</h3>
-                        <p class="text-xs text-gray-400">Görselin üzerinde doğru cevabın bulunduğu noktaya tıklayın.</p>
+                    <div class="text-center mb-6">
+                        <h3 class="text-slate-400 font-bold uppercase tracking-widest text-sm">Doğru Yeri İşaretleyin
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">Görselin üzerinde doğru cevabın bulunduğu noktaya
+                            tıklayın.</p>
                     </div>
 
                     <!-- Image Container for Pinning -->
-                    <div class="relative w-full max-w-2xl border-2 border-indigo-100 rounded-lg overflow-hidden cursor-crosshair group"
+                    <div class="relative w-full max-w-2xl border-2 border-slate-700 rounded-xl overflow-hidden cursor-crosshair group shadow-2xl"
                         x-show="currentQuestion.image_url" @click="setPin($event)">
 
                         <img :src="currentQuestion.image_url" class="w-full h-auto object-contain block">
 
                         <!-- Pin Marker -->
                         <div x-show="currentQuestion.options[0].text"
-                            class="absolute w-8 h-8 -ml-4 -mt-8 text-4xl drop-shadow-lg transition-all duration-200 pointer-events-none"
+                            class="absolute w-10 h-10 -ml-5 -mt-10 text-5xl drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] transition-all duration-200 pointer-events-none"
                             :style="'left: ' + (currentQuestion.options[0].text ? currentQuestion.options[0].text.split(',')[0] + '%' : '50%') + '; top: ' + (currentQuestion.options[0].text ? currentQuestion.options[0].text.split(',')[1] + '%' : '50%')">
                             📍
                         </div>
                     </div>
 
                     <div x-show="!currentQuestion.image_url"
-                        class="p-8 text-red-400 font-bold bg-red-50 rounded-lg border border-red-200">
+                        class="p-8 text-red-300 font-bold bg-red-500/10 rounded-xl border border-red-500/20 text-center animate-pulse">
                         ⚠️ Önce yukarıdan bir görsel eklemelisiniz.
                     </div>
                 </div>
@@ -279,16 +363,18 @@
         </div>
 
         <!-- RIGHT SIDEBAR (SETTINGS) -->
-        <div class="w-64 bg-white border-l border-gray-200 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto">
+        <div
+            class="w-64 glass-panel border-l-0 border-l border-slate-800 p-4 shrink-0 flex flex-col gap-6 overflow-y-auto z-20">
 
             <!-- Type Selector Trigger -->
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Soru Türü</label>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">Soru
+                    Türü</label>
                 <button @click="showTypeSelector = true"
-                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-3 flex items-center justify-between shadow-sm transition group">
+                    class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 rounded-xl p-3 flex items-center justify-between shadow-md transition group">
                     <div class="flex items-center gap-3">
                         <span class="text-xl" x-text="getTypeIcon(currentQuestion.question_type)"></span>
-                        <span class="font-bold text-gray-700"
+                        <span class="font-bold text-slate-200"
                             x-text="getTypeName(currentQuestion.question_type)"></span>
                     </div>
                 </button>
@@ -296,8 +382,9 @@
 
             <!-- Time Limit -->
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                <label
+                    class="block text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1 tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -305,21 +392,17 @@
                     Zaman sınırı
                 </label>
                 <button @click="showTimeSelector = true"
-                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 rounded-xl p-3 font-bold text-slate-200 flex justify-between items-center shadow-md transition">
                     <span x-text="formatTime(currentQuestion.time_limit)"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
-                        fill="currentColor">
-                        <path fill-rule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clip-rule="evenodd" />
-                    </svg>
+                    <span class="text-slate-500 text-xs">▼</span>
                 </button>
             </div>
 
             <!-- Points -->
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                <label
+                    class="block text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1 tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -327,29 +410,24 @@
                     Puan
                 </label>
                 <button @click="showPointsSelector = true"
-                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 rounded-xl p-3 font-bold text-slate-200 flex justify-between items-center shadow-md transition">
                     <span x-text="formatPoints(currentQuestion.points)"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20"
-                        fill="currentColor">
-                        <path fill-rule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clip-rule="evenodd" />
-                    </svg>
+                    <span class="text-slate-500 text-xs">▼</span>
                 </button>
             </div>
 
             <!-- Themes Trigger -->
             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Tema</label>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider">Tema</label>
                 <button @click="showThemeSelector = true"
-                    class="w-full bg-white border border-gray-300 hover:border-indigo-500 rounded p-2 font-bold text-gray-700 flex justify-between items-center shadow-sm transition">
+                    class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-indigo-500 rounded-xl p-3 font-bold text-slate-200 flex justify-between items-center shadow-md transition">
                     <span x-text="getThemeName(quiz.theme)"></span>
                     <span class="text-xl">🎨</span>
                 </button>
             </div>
 
-            <div class="mt-auto pt-8 text-center text-gray-300 text-xs text-balance">
-                Kahoot Tarzı BiSual<br>Editor V1.0
+            <div class="mt-auto pt-8 text-center text-slate-600 text-[10px] text-balance opacity-50">
+                BiSual v2.0<br>Premium Editor
             </div>
 
         </div>
@@ -358,12 +436,13 @@
         <div x-show="showSuccess"
             class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm"
             style="display: none;">
-            <div class="bg-white p-8 rounded-xl text-center max-w-sm mx-auto shadow-2xl animate-bounce">
-                <div class="text-5xl mb-4">🎉</div>
-                <h2 class="text-2xl font-black text-gray-800 mb-2">Hazır!</h2>
-                <p class="text-gray-500 mb-6">Yarışma başarıyla kaydedildi.</p>
+            <div
+                class="glass-panel p-8 rounded-2xl text-center max-w-sm mx-auto shadow-2xl animate-bounce border border-indigo-500/50">
+                <div class="text-6xl mb-6">🎉</div>
+                <h2 class="text-3xl font-black text-white mb-2">Hazır!</h2>
+                <p class="text-slate-400 mb-8 font-medium">Yarışma başarıyla kaydedildi.</p>
                 <a href="/host"
-                    class="bg-indigo-600 text-white px-6 py-2 rounded font-bold block w-full hover:bg-indigo-700">
+                    class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-bold block w-full hover:shadow-lg hover:shadow-indigo-500/30 transition transform hover:scale-105">
                     Başlat
                 </a>
             </div>
@@ -371,67 +450,70 @@
 
         <!-- Type Selector Modal -->
         <div x-show="showTypeSelector" @click.self="showTypeSelector = false"
-            class="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] backdrop-blur-sm"
+            class="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] backdrop-blur-md"
             style="display: none;">
-            <div class="bg-white p-6 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-700">Soru türü seç</h2>
+            <div
+                class="glass-panel bg-slate-900/90 p-8 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden border border-slate-700">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                        <span class="text-indigo-400">❖</span> Soru türü seç
+                    </h2>
                     <button @click="showTypeSelector = false"
-                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                        class="text-slate-400 hover:text-white text-3xl transition hover:rotate-90">×</button>
                 </div>
 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <!-- Quiz -->
                     <button @click="changeType('multiple_choice')"
-                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
-                        :class="currentQuestion.question_type === 'multiple_choice' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
-                        <div class="text-3xl">💠</div>
-                        <span class="font-bold text-gray-700">Quiz</span>
+                        class="p-4 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-600/20 transition flex flex-col items-center gap-4 text-center h-40 justify-center group"
+                        :class="currentQuestion.question_type === 'multiple_choice' ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/50'">
+                        <div class="text-4xl group-hover:scale-110 transition">💠</div>
+                        <span class="font-bold text-slate-200 group-hover:text-white">Quiz</span>
                     </button>
 
                     <!-- True/False -->
                     <button @click="changeType('true_false')"
-                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
-                        :class="currentQuestion.question_type === 'true_false' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
-                        <div class="text-3xl flex gap-1"><span class="text-blue-500">▮</span><span
-                                class="text-red-500">▮</span></div>
-                        <span class="font-bold text-gray-700">Doğru/Yanlış</span>
+                        class="p-4 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-600/20 transition flex flex-col items-center gap-4 text-center h-40 justify-center group"
+                        :class="currentQuestion.question_type === 'true_false' ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/50'">
+                        <div class="text-4xl flex gap-1 group-hover:scale-110 transition"><span
+                                class="text-blue-500">▮</span><span class="text-red-500">▮</span></div>
+                        <span class="font-bold text-slate-200 group-hover:text-white">Doğru/Yanlış</span>
                     </button>
 
                     <!-- Type Answer -->
                     <button @click="changeType('typing')"
-                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
-                        :class="currentQuestion.question_type === 'typing' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
-                        <div class="text-3xl">⌨️</div>
-                        <span class="font-bold text-gray-700">Kısa Cevap</span>
+                        class="p-4 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-600/20 transition flex flex-col items-center gap-4 text-center h-40 justify-center group"
+                        :class="currentQuestion.question_type === 'typing' ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/50'">
+                        <div class="text-4xl group-hover:scale-110 transition">⌨️</div>
+                        <span class="font-bold text-slate-200 group-hover:text-white">Kısa Cevap</span>
                     </button>
 
                     <!-- Pin Drop -->
                     <button @click="changeType('marked_answer')"
-                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
-                        :class="currentQuestion.question_type === 'marked_answer' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
-                        <div class="text-3xl">📍</div>
-                        <span class="font-bold text-gray-700">İşaretli Cevap</span>
+                        class="p-4 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-600/20 transition flex flex-col items-center gap-4 text-center h-40 justify-center group"
+                        :class="currentQuestion.question_type === 'marked_answer' ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/50'">
+                        <div class="text-4xl group-hover:scale-110 transition">📍</div>
+                        <span class="font-bold text-slate-200 group-hover:text-white">İşaretli Cevap</span>
                     </button>
 
                     <!-- Poll -->
                     <button @click="changeType('poll')"
-                        class="p-4 rounded-xl border-2 hover:border-indigo-500 hover:bg-indigo-50 transition flex flex-col items-center gap-3 text-center h-32 justify-center"
-                        :class="currentQuestion.question_type === 'poll' ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'">
-                        <div class="text-3xl">📊</div>
-                        <span class="font-bold text-gray-700">Oylama</span>
+                        class="p-4 rounded-2xl border hover:border-indigo-500 hover:bg-indigo-600/20 transition flex flex-col items-center gap-4 text-center h-40 justify-center group"
+                        :class="currentQuestion.question_type === 'poll' ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/50'">
+                        <div class="text-4xl group-hover:scale-110 transition">📊</div>
+                        <span class="font-bold text-slate-200 group-hover:text-white">Oylama</span>
                     </button>
 
                     <!-- Coming Soon -->
                     <button
-                        class="p-4 rounded-xl border-2 border-gray-100 bg-gray-50 cursor-not-allowed opacity-60 flex flex-col items-center gap-3 text-center h-32 justify-center">
-                        <div class="text-2xl grayscale">🧩</div>
-                        <span class="font-bold text-gray-400">Puzzle</span>
+                        class="p-4 rounded-2xl border border-slate-800 bg-slate-900/50 cursor-not-allowed opacity-40 flex flex-col items-center gap-4 text-center h-40 justify-center grayscale">
+                        <div class="text-3xl">🧩</div>
+                        <span class="font-bold text-slate-500">Puzzle</span>
                     </button>
                     <button
-                        class="p-4 rounded-xl border-2 border-gray-100 bg-gray-50 cursor-not-allowed opacity-60 flex flex-col items-center gap-3 text-center h-32 justify-center">
-                        <div class="text-2xl grayscale">☁️</div>
-                        <span class="font-bold text-gray-400">Kelime</span>
+                        class="p-4 rounded-2xl border border-slate-800 bg-slate-900/50 cursor-not-allowed opacity-40 flex flex-col items-center gap-4 text-center h-40 justify-center grayscale">
+                        <div class="text-3xl">☁️</div>
+                        <span class="font-bold text-slate-500">Kelime</span>
                     </button>
 
                 </div>
@@ -440,19 +522,22 @@
 
         <!-- Time Selector Modal -->
         <div x-show="showTimeSelector" @click.self="showTimeSelector = false"
-            class="fixed inset-0 bg-black/50 flex justify-end z-[70] backdrop-blur-sm" style="display: none;"
-            x-transition>
-            <div class="w-80 bg-white h-full shadow-2xl p-4 overflow-y-auto flex flex-col gap-4">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-700">Zaman sınırı</h2>
+            class="fixed inset-0 bg-black/60 flex justify-end z-[70] backdrop-blur-sm" style="display: none;"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-x-full"
+            x-transition:enter-end="opacity-100 translate-x-0" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-full">
+            <div
+                class="w-80 glass-panel bg-slate-900/95 h-full shadow-2xl p-6 overflow-y-auto flex flex-col gap-6 border-l border-slate-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-white">Zaman sınırı</h2>
                     <button @click="showTimeSelector = false"
-                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                        class="text-slate-400 hover:text-white text-2xl">×</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <template x-for="time in [5, 10, 20, 30, 60, 90, 120, 240]">
                         <button @click="currentQuestion.time_limit = time; showTimeSelector = false"
-                            class="p-3 rounded-lg border-2 hover:border-indigo-500 hover:bg-indigo-50 font-bold text-gray-700 transition"
-                            :class="currentQuestion.time_limit === time ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200'"
+                            class="p-4 rounded-xl border hover:border-indigo-500 hover:bg-slate-800 transition font-bold text-slate-300"
+                            :class="currentQuestion.time_limit === time ? 'border-indigo-500 bg-indigo-600/20 text-white' : 'border-slate-700 bg-slate-800/30'"
                             x-text="formatTime(time)"></button>
                     </template>
                 </div>
@@ -461,49 +546,52 @@
 
         <!-- Points Selector Modal -->
         <div x-show="showPointsSelector" @click.self="showPointsSelector = false"
-            class="fixed inset-0 bg-black/50 flex justify-end z-[70] backdrop-blur-sm" style="display: none;"
-            x-transition>
-            <div class="w-80 bg-white h-full shadow-2xl p-4 overflow-y-auto flex flex-col gap-4">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-gray-700">Puanlar</h2>
+            class="fixed inset-0 bg-black/60 flex justify-end z-[70] backdrop-blur-sm" style="display: none;"
+            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-x-full"
+            x-transition:enter-end="opacity-100 translate-x-0" x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-x-0" x-transition:leave-end="opacity-0 translate-x-full">
+            <div
+                class="w-80 glass-panel bg-slate-900/95 h-full shadow-2xl p-6 overflow-y-auto flex flex-col gap-6 border-l border-slate-700">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-white">Puanlar</h2>
                     <button @click="showPointsSelector = false"
-                        class="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                        class="text-slate-400 hover:text-white text-2xl">×</button>
                 </div>
                 <div class="flex flex-col gap-3">
                     <!-- Standard -->
                     <button @click="currentQuestion.points = 1000; showPointsSelector = false"
-                        class="p-4 rounded-xl border-2 text-left relative group transition h-24 flex flex-col justify-center"
-                        :class="currentQuestion.points === 1000 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'">
+                        class="p-6 rounded-2xl border text-left relative group transition flex flex-col justify-center gap-2"
+                        :class="currentQuestion.points === 1000 ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/30 hover:bg-slate-800 hover:border-indigo-400'">
                         <div class="flex justify-between items-center w-full">
-                            <span class="font-bold text-gray-800 text-lg">Standart</span>
+                            <span class="font-bold text-white text-lg">Standart</span>
                             <span x-show="currentQuestion.points === 1000"
-                                class="text-xl font-bold text-indigo-600">✓</span>
+                                class="text-xl font-bold text-indigo-400">✓</span>
                         </div>
-                        <span class="text-xs text-gray-500 mt-1">Doğru cevapları normal puanla ödüllendir.</span>
+                        <span class="text-xs text-slate-400">Doğru cevapları normal puanla ödüllendir.</span>
                     </button>
 
                     <!-- Double Points -->
                     <button @click="currentQuestion.points = 2000; showPointsSelector = false"
-                        class="p-4 rounded-xl border-2 text-left relative group transition h-24 flex flex-col justify-center"
-                        :class="currentQuestion.points === 2000 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'">
+                        class="p-6 rounded-2xl border text-left relative group transition flex flex-col justify-center gap-2"
+                        :class="currentQuestion.points === 2000 ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/30 hover:bg-slate-800 hover:border-indigo-400'">
                         <div class="flex justify-between items-center w-full">
-                            <span class="font-bold text-gray-800 text-lg">İki kat puan</span>
+                            <span class="font-bold text-white text-lg">İki kat puan</span>
                             <span x-show="currentQuestion.points === 2000"
-                                class="text-xl font-bold text-indigo-600">✓</span>
+                                class="text-xl font-bold text-indigo-400">✓</span>
                         </div>
-                        <span class="text-xs text-gray-500 mt-1">Doğru cevaplar için iki kat puan ver.</span>
+                        <span class="text-xs text-slate-400">Doğru cevaplar için iki kat puan ver.</span>
                     </button>
 
                     <!-- No Points -->
                     <button @click="currentQuestion.points = 0; showPointsSelector = false"
-                        class="p-4 rounded-xl border-2 text-left relative group transition h-24 flex flex-col justify-center"
-                        :class="currentQuestion.points === 0 ? 'border-indigo-600 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'">
+                        class="p-6 rounded-2xl border text-left relative group transition flex flex-col justify-center gap-2"
+                        :class="currentQuestion.points === 0 ? 'border-indigo-500 bg-indigo-600/20' : 'border-slate-700 bg-slate-800/30 hover:bg-slate-800 hover:border-indigo-400'">
                         <div class="flex justify-between items-center w-full">
-                            <span class="font-bold text-gray-800 text-lg">0 puan</span>
+                            <span class="font-bold text-white text-lg">0 puan</span>
                             <span x-show="currentQuestion.points === 0"
-                                class="text-xl font-bold text-indigo-600">✓</span>
+                                class="text-xl font-bold text-indigo-400">✓</span>
                         </div>
-                        <span class="text-xs text-gray-500 mt-1">Sorunun ödülünü azalt ve puanları kaldır.</span>
+                        <span class="text-xs text-slate-400">Sorunun ödülünü azalt ve puanları kaldır.</span>
                     </button>
                 </div>
             </div>
@@ -512,26 +600,29 @@
 
     <!-- Theme Selector Modal -->
     <div x-show="showThemeSelector" @click.self="showThemeSelector = false"
-        class="fixed inset-0 bg-black/50 flex justify-end z-[70] backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="w-80 bg-white h-full shadow-2xl p-4 overflow-y-auto flex flex-col gap-4">
+        class="fixed inset-0 bg-black/60 flex justify-end z-[70] backdrop-blur-sm" style="display: none;" x-transition>
+        <div
+            class="w-80 glass-panel bg-slate-900/95 h-full shadow-2xl p-6 overflow-y-auto flex flex-col gap-6 border-l border-slate-700">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold">Temalar</h2>
-                <button @click="showThemeSelector = false" class="text-2xl hover:bg-gray-100 rounded p-1">×</button>
+                <h2 class="text-xl font-bold text-white">Temalar</h2>
+                <button @click="showThemeSelector = false" class="text-slate-400 hover:text-white text-2xl">×</button>
             </div>
 
             <div>
-                <div class="flex justify-between items-center text-gray-500 font-bold text-sm mb-2 cursor-pointer">
+                <div
+                    class="flex justify-between items-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-3">
                     <span>Temaların</span>
                     <span>▼</span>
                 </div>
                 <div
-                    class="border-2 border-dashed border-gray-300 rounded-lg h-24 flex items-center justify-center text-gray-400 cursor-pointer hover:border-indigo-500 hover:text-indigo-500 transition">
+                    class="border border-dashed border-slate-600 rounded-xl h-24 flex items-center justify-center text-slate-500 cursor-pointer hover:border-indigo-500 hover:text-indigo-400 hover:bg-slate-800/50 transition">
                     <span class="text-4xl font-light">+</span>
                 </div>
             </div>
 
             <div>
-                <div class="flex justify-between items-center text-gray-500 font-bold text-sm mb-2 cursor-pointer">
+                <div
+                    class="flex justify-between items-center text-slate-400 font-bold text-xs uppercase tracking-wider mb-3">
                     <span>Ücretsiz</span>
                     <span>▼</span>
                 </div>
@@ -539,44 +630,43 @@
                 <div class="grid grid-cols-2 gap-3">
                     <!-- Standard -->
                     <div @click="setTheme('standard')" class="cursor-pointer group">
-                        <div class="h-24 rounded-lg bg-indigo-900 border-4 transition relative overflow-hidden"
-                            :class="quiz.theme === 'standard' ? 'border-indigo-600' : 'border-transparent'">
-                            <!-- Simulating standard background -->
+                        <div class="h-24 rounded-lg bg-indigo-900 border-2 transition relative overflow-hidden"
+                            :class="quiz.theme === 'standard' ? 'border-indigo-400 ring-2 ring-indigo-400/30' : 'border-transparent opacity-80 group-hover:opacity-100'">
                             <div
                                 class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-50">
                             </div>
                         </div>
-                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
-                            :class="quiz.theme === 'standard' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                        <div
+                            class="text-center text-[10px] font-bold mt-2 text-slate-400 group-hover:text-white uppercase tracking-wider">
                             Standard</div>
                     </div>
 
                     <!-- Winter -->
                     <div @click="setTheme('winter')" class="cursor-pointer group">
-                        <div class="h-24 rounded-lg bg-blue-200 border-4 transition relative overflow-hidden"
-                            :class="quiz.theme === 'winter' ? 'border-indigo-600' : 'border-transparent'">
+                        <div class="h-24 rounded-lg bg-blue-900 border-2 transition relative overflow-hidden"
+                            :class="quiz.theme === 'winter' ? 'border-indigo-400 ring-2 ring-indigo-400/30' : 'border-transparent opacity-80 group-hover:opacity-100'">
                             <div class="absolute inset-0 text-4xl flex items-center justify-center">❄️</div>
                         </div>
-                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
-                            :class="quiz.theme === 'winter' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                        <div
+                            class="text-center text-[10px] font-bold mt-2 text-slate-400 group-hover:text-white uppercase tracking-wider">
                             Winter</div>
                     </div>
 
                     <!-- Spring -->
                     <div @click="setTheme('spring')" class="cursor-pointer group">
-                        <div class="h-24 rounded-lg bg-green-200 border-4 transition relative overflow-hidden"
-                            :class="quiz.theme === 'spring' ? 'border-indigo-600' : 'border-transparent'">
+                        <div class="h-24 rounded-lg bg-emerald-900 border-2 transition relative overflow-hidden"
+                            :class="quiz.theme === 'spring' ? 'border-indigo-400 ring-2 ring-indigo-400/30' : 'border-transparent opacity-80 group-hover:opacity-100'">
                             <div class="absolute inset-0 text-4xl flex items-center justify-center">🌸</div>
                         </div>
-                        <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
-                            :class="quiz.theme === 'spring' ? 'bg-indigo-600 text-white rounded px-2 py-0.5 inline-block' : ''">
+                        <div
+                            class="text-center text-[10px] font-bold mt-2 text-slate-400 group-hover:text-white uppercase tracking-wider">
                             Spring</div>
                     </div>
 
                     <!-- Summer -->
                     <div @click="setTheme('summer')" class="cursor-pointer group">
-                        <div class="h-24 rounded-lg bg-yellow-200 border-4 transition relative overflow-hidden"
-                            :class="quiz.theme === 'summer' ? 'border-indigo-600' : 'border-transparent'">
+                        <div class="h-24 rounded-lg bg-amber-900 border-2 transition relative overflow-hidden"
+                            :class="quiz.theme === 'summer' ? 'border-indigo-400 ring-2 ring-indigo-400/30' : 'border-transparent opacity-80 group-hover:opacity-100'">
                             <div class="absolute inset-0 text-4xl flex items-center justify-center">☀️</div>
                         </div>
                         <div class="text-center text-xs font-bold mt-1 text-gray-700 group-hover:text-indigo-600"
@@ -828,6 +918,15 @@
                 aiQuestions: [],
                 excelLoading: false,
                 uploading: false,
+                toasts: [], // Toast queue
+
+                showToast(message, type = 'info') {
+                    const id = Date.now();
+                    this.toasts.push({ id, message, type });
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 3000);
+                },
                 quiz: {
                     title: '',
                     description: '',
@@ -863,7 +962,7 @@
                 },
 
                 async fetchAiQuestions() {
-                    if (!this.aiTopic) return alert("Lütfen konu girin");
+                    if (!this.aiTopic) return this.showToast("Lütfen bir konu girin.", "error");
                     this.aiLoading = true;
                     try {
                         const res = await fetch('/api/ai/preview', {
@@ -884,11 +983,12 @@
                         const data = await res.json();
                         if (Array.isArray(data)) {
                             this.aiQuestions = data.map(q => ({ ...q, selected: true })); // Default select all
+                            this.showToast(`${data.length} soru üretildi!`, "success");
                         } else {
-                            alert("Hata oluştu");
+                            this.showToast("Yapay zeka soru üretemedi.", "error");
                         }
                     } catch (e) {
-                        alert("Sunucu hatası");
+                        this.showToast("Sunucu hatası: " + e.message, "error");
                     } finally {
                         this.aiLoading = false;
                     }
@@ -1138,32 +1238,24 @@
                         if (q.question_type === 'typing') {
                             if (!q.options[0].text) {
                                 this.currentIndex = i;
-                                return alert((i + 1) + '. soru için doğru cevabı yazmadınız.');
+                                return this.showToast(`${i + 1}. soru için görsel üzerine tıklayarak doğru yeri işaretleyin.`, "error");
                             }
-                        } else {
-                            if (!q.options.some(o => o.is_correct) && q.question_type !== 'marked_answer') {
-                                this.currentIndex = i;
-                                return alert((i + 1) + '. soruda doğru cevabı seçmediniz!');
-                            }
-                            if (q.question_type === 'marked_answer') {
-                                if (!q.image_url) {
-                                    this.currentIndex = i;
-                                    return alert((i + 1) + '. soru için (İşaretli Cevap) bir görsel eklemelisiniz.');
-                                }
-                                if (!q.options[0].text) {
-                                    this.currentIndex = i;
-                                    return alert((i + 1) + '. soru için görsel üzerine tıklayarak doğru yeri işaretleyin.');
-                                }
-                            }
+                        }
+                        if (q.question_type !== 'poll' && !q.options.some(o => o.is_correct)) {
+                            return this.showToast(`${i + 1}. soruda doğru cevabı seçmediniz!`, "error");
                         }
                     }
 
                     try {
-                        const isEdit = !!this.quiz.id;
-                        const url = isEdit ? `/api/quizzes/${this.quiz.id}` : '/api/quizzes/';
-                        const method = isEdit ? 'PUT' : 'POST';
+                        let method = 'POST';
+                        let url = '/api/quizzes/';
 
-                        const response = await fetch(url, {
+                        if (this.quiz.id) {
+                            method = 'PUT';
+                            url = `/api/quizzes/${this.quiz.id}`;
+                        }
+
+                        const res = await fetch(url, {
                             method: method,
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1172,15 +1264,16 @@
                             body: JSON.stringify(this.quiz)
                         });
 
-                        if (response.ok) {
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.showToast("Yarışma başarıyla kaydedildi!", "success");
                             this.showSuccess = true;
                         } else {
-                            const err = await response.json();
-                            alert("Hata: " + (err.detail || "Kaydedilemedi"));
+                            const err = await res.json();
+                            this.showToast("Hata: " + (err.detail || "Kaydedilemedi"), "error");
                         }
-                    } catch (error) {
-                        console.error(error);
-                        alert("Bir hata oluştu.");
+                    } catch (e) {
+                        this.showToast("Bağlantı hatası!", "error");
                     }
                 }
             }));

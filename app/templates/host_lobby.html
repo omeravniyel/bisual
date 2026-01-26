@@ -14,24 +14,70 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/theme.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body {
+        <style>body {
             font-family: 'Outfit', sans-serif;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Dark Mode Background */
+        .mesh-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
             background-color: #020617;
             background-image:
                 radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
             background-attachment: fixed;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        /* Light Mode Background */
+        .light-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background-color: #f8fafc;
+            background-image:
+                radial-gradient(at 0% 0%, hsla(210, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(220, 100%, 90%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 95%, 1) 0, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        html:not(.dark) .mesh-bg {
+            opacity: 0;
+        }
+
+        html:not(.dark) .light-bg {
+            opacity: 1;
+        }
+
+        /* Text Colors */
+        html:not(.dark) body {
+            color: #1e293b;
+        }
+
+        html.dark body {
             color: white;
-            overflow: hidden;
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        html.dark .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
         }
@@ -39,6 +85,14 @@
         .pin-text {
             font-size: 8rem;
             letter-spacing: 0.5rem;
+            background: linear-gradient(to right, #4f46e5, #9333ea);
+            /* Light mode gradient */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.2));
+        }
+
+        html.dark .pin-text {
             background: linear-gradient(to right, #ffffff, #a5b4fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -95,23 +149,38 @@
         }
 
         .player-chip {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(4px);
             transition: all 0.3s;
+            color: #1e293b;
+        }
+
+        html.dark .player-chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
         }
 
         .player-chip:hover {
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.8);
             transform: translateY(-5px);
             border-color: rgba(99, 102, 241, 0.5);
         }
 
+        html.dark .player-chip:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
         /* Leaderboard Rows */
         .lb-row {
-            background: rgba(30, 41, 59, 0.6);
+            background: rgba(255, 255, 255, 0.5);
             border-left: 4px solid transparent;
             transition: all 0.3s;
+        }
+
+        html.dark .lb-row {
+            background: rgba(30, 41, 59, 0.6);
         }
 
         .lb-row.first {
@@ -131,7 +200,11 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col" x-data="hostGame('{{ host_ip }}', '{{ port }}')" x-init="initTheme()" x-cloak>
+<body class="h-screen flex flex-col items-center justify-center relative overflow-hidden"
+    x-data="hostGame('{{ host_ip }}', '{{ port }}')" x-cloak>
+
+    <div class="mesh-bg"></div>
+    <div class="light-bg"></div>
 
     <!-- Top Bar -->
     <div class="h-20 px-8 flex justify-between items-center z-50 fixed top-0 w-full">
@@ -176,34 +249,68 @@
             x-transition:enter="transition ease-out duration-700" x-transition:enter-start="opacity-0 scale-95"
             x-transition:enter-end="opacity-100 scale-100">
 
-            <!-- Center Content -->
-            <div class="flex flex-col items-center mb-16 animate-float">
-                <p class="text-xl text-indigo-200 mb-2 font-medium tracking-wide uppercase">Oyuna Katıl</p>
-                <div class="pin-text font-black mb-4 select-all" x-text="pin || '...'"></div>
-                <div class="glass-panel px-8 py-3 rounded-full text-2xl font-bold text-white mb-8">
-                    bisual.app/play
-                </div>
-            </div>
-
-            <!-- QR Code Card -->
+            <!-- JOIN CARD (Unified) -->
             <div
-                class="absolute left-16 top-1/2 -translate-y-1/2 glass-panel p-4 rounded-3xl transform rotate-[-4deg] hover:rotate-0 transition-transform duration-500 hidden xl:block">
-                <div class="bg-white p-2 rounded-xl">
-                    <div id="qrcode"></div>
+                class="glass-panel p-8 rounded-[3rem] shadow-2xl flex flex-col md:flex-row items-center gap-12 mb-12 border-2 border-white/10 animate-float backdrop-blur-xl relative group">
+
+                <!-- Glow Effect behind card -->
+                <div
+                    class="absolute -inset-4 bg-gradient-to-r from-indigo-500/30 to-purple-600/30 rounded-[3.5rem] blur-2xl -z-10 group-hover:opacity-100 opacity-60 transition duration-1000">
                 </div>
-                <p class="text-center mt-3 font-bold text-indigo-200">Okut ve Katıl</p>
+
+                <!-- LEFT: QR Code -->
+                <div class="flex flex-col items-center gap-4">
+                    <div
+                        class="bg-white p-3 rounded-2xl shadow-inner transform -rotate-3 group-hover:rotate-0 transition duration-500">
+                        <div id="qrcode"></div>
+                    </div>
+                    <div
+                        class="flex items-center gap-2 text-indigo-200 font-bold uppercase text-xs tracking-widest opacity-80">
+                        <span class="animate-bounce">📱</span> Okut ve Katıl
+                    </div>
+                </div>
+
+                <!-- DIVIDER -->
+                <div class="hidden md:block w-px h-32 bg-gradient-to-b from-transparent via-white/20 to-transparent">
+                </div>
+
+                <!-- RIGHT: PIN & Info -->
+                <div class="flex flex-col items-center md:items-start p-4">
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">Oyuna Katıl</p>
+                    <div class="pin-text font-black text-7xl md:text-9xl tracking-tight leading-nonetext-transparent bg-clip-text bg-gradient-to-br from-white to-indigo-200 drop-shadow-[0_0_30px_rgba(99,102,241,0.5)] cursor-pointer hover:scale-105 transition active:scale-95"
+                        x-text="pin || '...'" title="Kopyala"
+                        @click="navigator.clipboard.writeText(pin); $el.classList.add('scale-90'); setTimeout(()=>$el.classList.remove('scale-90'), 150)">
+                    </div>
+
+                    <div class="mt-4 flex items-center gap-3 bg-black/20 px-6 py-2 rounded-full border border-white/5">
+                        <span class="text-slate-400">🌐</span>
+                        <span class="text-xl font-bold text-white tracking-wide">bisual.app/play</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Players Grid -->
-            <div class="w-full max-w-6xl px-8 flex flex-wrap justify-center gap-4 overflow-y-auto max-h-[30vh]">
-                <template x-for="player in players" :key="player">
-                    <div class="player-chip px-6 py-3 rounded-full text-xl font-bold text-white shadow-lg animate-bounce"
-                        style="animation-duration: 3s;">
-                        <span x-text="player"></span>
+            <div class="w-full max-w-6xl px-8 flex flex-wrap justify-center gap-4 overflow-y-auto max-h-[40vh] py-4">
+                <template x-for="(player, index) in players" :key="player">
+                    <div class="player-chip px-6 py-3 rounded-full text-xl font-bold text-white shadow-[0_0_15px_rgba(0,0,0,0.3)] animate-[bounce_0.5s_ease-out] border-2 flex items-center gap-2"
+                        :class="[
+                            'border-pink-500 shadow-pink-500/40 bg-pink-500/10',
+                            'border-indigo-500 shadow-indigo-500/40 bg-indigo-500/10',
+                            'border-cyan-500 shadow-cyan-500/40 bg-cyan-500/10',
+                            'border-yellow-500 shadow-yellow-500/40 bg-yellow-500/10',
+                            'border-green-500 shadow-green-500/40 bg-green-500/10'
+                        ][index % 5]" x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 scale-0" x-transition:enter-end="opacity-100 scale-100">
+
+                        <!-- Avatar Icon (Random based on index) -->
+                        <span x-text="['👽','👾','🤖','🐱','🐶','🦁','🐯','🐨'][index % 8]" class="text-2xl"></span>
+
+                        <span x-text="player" class="tracking-wide"></span>
                     </div>
                 </template>
-                <div x-show="players.length === 0" class="text-slate-500 animate-pulse text-xl">
-                    Oyuncular bekleniyor...
+                <div x-show="players.length === 0" class="flex flex-col items-center gap-4 py-8 opacity-60">
+                    <div class="w-16 h-16 rounded-full border-4 border-dashed border-white/20 animate-spin"></div>
+                    <div class="text-xl font-medium tracking-wide animate-pulse">Oyuncular bekleniyor...</div>
                 </div>
             </div>
 
@@ -382,16 +489,7 @@
         </div>
 
     </div>
-    x-transition:enter-end="translate-y-0 opacity-100">
-    <div class="text-2xl font-bold text-orange-700 dark:text-orange-200 mb-2 leading-tight text-center truncate w-full"
-        x-text="leaderboard[2] ? leaderboard[2].nickname : '-'"></div>
-    <div
-        class="w-full h-48 bg-gradient-to-t from-orange-600 to-orange-400 rounded-t-lg shadow-2xl flex flex-col items-center justify-start pt-4 border-t-8 border-orange-200 relative">
-        <div class="text-5xl">🥉</div>
-        <div class="text-3xl font-black text-orange-900 mt-2" x-text="leaderboard[2] ? leaderboard[2].score : 0"></div>
-    </div>
-    </div>
-    </div>
+
 
     <a href="/host" x-show="podiumStep >= 3" x-transition:enter="transition ease-out duration-1000 delay-1000"
         x-transition:enter-start="opacity-0 translate-y-10" x-transition:enter-end="opacity-100 translate-y-0"
@@ -411,256 +509,236 @@
     </div>
 
     <script>
-            < script >
-            document.addEventListener('alpine:init', () => {
-                Alpine.data('hostGame', (hostIp, port) => ({
-                    hostIp: hostIp || window.location.hostname,
-                    port: port || window.location.port,
-                    ws: null,
-                    pin: null,
-                    players: [],
-                    state: 'LOBBY',
-                    dark: false,
+        function hostGame(hostIp, port) {
+            return {
+                hostIp: hostIp || window.location.hostname,
+                port: port || window.location.port,
+                ws: null,
+                pin: null,
+                players: [],
+                state: 'LOBBY',
+                dark: false,
 
-                    // Theme Logic
-                    initTheme() {
-                        this.dark = localStorage.getItem('theme') === 'dark';
-                        if (this.dark) document.documentElement.classList.add('dark');
-                        else document.documentElement.classList.remove('dark');
+                // Theme Logic handled by theme.js globally
 
-                        // interact requirement check
-                        document.addEventListener('click', () => {
-                            if (this.state === 'LOBBY' && !this.muted && this.sounds.lobby.paused) {
-                                this.playMusic('lobby');
-                            }
-                        }, { once: true });
-                    },
+                // Audio State
+                muted: true, // Start muted to support autoplay policies
+                settings: {}, // Store game settings
+                get musicPlaying() { return !this.muted; },
 
-                    toggleTheme() {
-                        this.dark = !this.dark;
-                        localStorage.setItem('theme', this.dark ? 'dark' : 'light');
-                        if (this.dark) document.documentElement.classList.add('dark');
-                        else document.documentElement.classList.remove('dark');
-                    },
+                toggleMusic() {
+                    this.toggleMute();
+                },
 
-                    // Audio State
-                    muted: true, // Start muted to support autoplay policies
-                    settings: {}, // Store game settings
-                    get musicPlaying() { return !this.muted; },
+                sounds: {
+                    lobby: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+                    question: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'),
+                    join: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'),
+                    timeup: new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'),
+                    end: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
+                    countdown: new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg')
+                },
 
-                    toggleMusic() {
-                        this.toggleMute();
-                    },
+                // Answer Stats
+                answeredCount: 0,
+                podiumStep: 0, // 0: None, 1: 3rd, 2: 2nd, 3: 1st
 
-                    sounds: {
-                        lobby: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
-                        question: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'),
-                        join: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'),
-                        timeup: new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'),
-                        end: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
-                        countdown: new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg')
-                    },
+                // Game Data
+                currentQuestion: {},
+                currentQuestionIndex: 0,
+                totalQuestions: 0,
+                timer: 0,
+                timerInterval: null,
+                showAnswer: false,
+                leaderboard: [],
 
-                    // Answer Stats
-                    answeredCount: 0,
-                    podiumStep: 0, // 0: None, 1: 3rd, 2: 2nd, 3: 1st
+                // Confetti Logic
+                fireConfetti(duration = 2000) {
+                    var end = Date.now() + duration;
 
-                    // Game Data
-                    currentQuestion: {},
-                    currentQuestionIndex: 0,
-                    totalQuestions: 0,
-                    timer: 0,
-                    timerInterval: null,
-                    showAnswer: false,
-                    leaderboard: [],
-
-                    // Confetti Logic
-                    fireConfetti(duration = 2000) {
-                        var end = Date.now() + duration;
-
-                        (function frame() {
-                            confetti({
-                                particleCount: 5, // smaller bursts
-                                angle: 60,
-                                spread: 55,
-                                origin: { x: 0 }
-                            });
-                            confetti({
-                                particleCount: 5,
-                                angle: 120,
-                                spread: 55,
-                                origin: { x: 1 }
-                            });
-
-                            if (Date.now() < end) {
-                                requestAnimationFrame(frame);
-                            }
-                        }());
-                    },
-
-                    fireWinnerConfetti() {
+                    (function frame() {
                         confetti({
-                            particleCount: 200,
-                            spread: 70,
-                            origin: { y: 0.6 }
+                            particleCount: 5, // smaller bursts
+                            angle: 60,
+                            spread: 55,
+                            origin: { x: 0 }
                         });
-                    },
-
-                    init() {
-                        // Main Init
-                        const quizId = window.location.pathname.split('/').pop();
-                        this.connect(quizId);
-
-                        // Setup Audio Loops
-                        this.sounds.lobby.loop = true;
-                        this.sounds.lobby.volume = 0.4;
-
-                        this.sounds.question.loop = true;
-                        this.sounds.question.volume = 0.2;
-                    },
-
-                    toggleMute() {
-                        this.muted = !this.muted;
-                        Object.values(this.sounds).forEach(s => s.muted = this.muted);
-                        if (!this.muted && this.state === 'LOBBY') this.playMusic('lobby');
-                    },
-
-                    playMusic(type) {
-                        // Stop others
-                        Object.values(this.sounds).forEach(s => {
-                            s.pause();
-                            s.currentTime = 0;
+                        confetti({
+                            particleCount: 5,
+                            angle: 120,
+                            spread: 55,
+                            origin: { x: 1 }
                         });
 
-                        if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
-                    },
-
-                    simplePlay(type) {
-                        if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
-                    },
-
-                    connect(quizId) {
-                        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                        const wsUrl = `${protocol}//${window.location.host}/ws/host/${quizId}`;
-                        this.ws = new WebSocket(wsUrl);
-
-                        this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
-
-                        this.ws.onerror = (e) => {
-                            console.error("WebSocket Error", e);
-                            alert("Bağlantı hatası! Lütfen sayfayı yenileyin.");
-                        };
-                    },
-
-                    handleMessage(data) {
-                        console.log("Host Msg:", data);
-
-                        if (data.type === 'GAME_CREATED') {
-                            this.pin = data.pin;
-                            this.settings = data.settings || {};
-                            this.playMusic('lobby');
-
-                            // Generate QR Code
-                            setTimeout(() => {
-                                const joinUrl = `http://${this.hostIp}:${this.port}/?pin=${this.pin}`;
-                                new QRCode(document.getElementById("qrcode"), {
-                                    text: joinUrl,
-                                    width: 128,
-                                    height: 128,
-                                    colorDark: "#4f46e5",
-                                    colorLight: "#ffffff",
-                                    correctLevel: QRCode.CorrectLevel.H
-                                });
-                            }, 100);
+                        if (Date.now() < end) {
+                            requestAnimationFrame(frame);
                         }
-                        else if (data.type === 'PLAYER_JOINED') {
-                            this.players.push(data.nickname);
-                            this.simplePlay('join');
-                        }
-                        else if (data.type === 'NEW_QUESTION') {
-                            this.state = 'QUESTION';
-                            this.currentQuestion = data.question;
-                            this.currentQuestionIndex = data.index;
-                            this.totalQuestions = data.total;
-                            this.showAnswer = false;
+                    }());
+                },
 
-                            this.playMusic('question');
-                            this.startTimer(data.question.time);
-                            this.answeredCount = 0; // Reset count
-                        }
-                        else if (data.type === 'ANSWER_UPDATE') {
-                            this.answeredCount = data.count;
-                        }
-                        else if (data.type === 'LEADERBOARD') {
-                            this.state = 'LEADERBOARD';
-                            this.leaderboard = data.data;
-                            // Fire confetti if there is a 'winner' (top of list)
-                            if (this.leaderboard.length > 0) {
-                                this.fireWinnerConfetti();
-                                this.simplePlay('end'); // Use end/chime sound for leaderboard
-                            }
-                        }
-                        else if (data.type === 'GAME_OVER') {
-                            this.state = 'END';
-                            this.playMusic('end');
+                fireWinnerConfetti() {
+                    confetti({
+                        particleCount: 200,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                },
 
-                            // Start Podium Sequence
-                            this.startPodiumSequence();
-                        }
-                    },
+                init() {
+                    // Main Init
+                    const quizId = window.location.pathname.split('/').pop();
+                    this.connect(quizId);
 
-                    startPodiumSequence() {
-                        this.podiumStep = 0;
+                    // Setup Audio Loops
+                    this.sounds.lobby.loop = true;
+                    this.sounds.lobby.volume = 0.4;
 
-                        // Show 3rd
-                        setTimeout(() => { if (this.leaderboard.length > 2) this.simplePlay('lobby'); this.podiumStep = 1; }, 500);
+                    this.sounds.question.loop = true;
+                    this.sounds.question.volume = 0.2;
+                },
 
-                        // Show 2nd
-                        setTimeout(() => { if (this.leaderboard.length > 1) this.simplePlay('lobby'); this.podiumStep = 2; }, 2500);
+                toggleMute() {
+                    this.muted = !this.muted;
+                    Object.values(this.sounds).forEach(s => s.muted = this.muted);
+                    if (!this.muted && this.state === 'LOBBY') this.playMusic('lobby');
+                },
 
-                        // Show 1st
+                playMusic(type) {
+                    // Stop others
+                    Object.values(this.sounds).forEach(s => {
+                        s.pause();
+                        s.currentTime = 0;
+                    });
+
+                    if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
+                },
+
+                simplePlay(type) {
+                    if (this.sounds[type]) this.sounds[type].play().catch(e => console.log("Autoplay blocked"));
+                },
+
+                connect(quizId) {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/host/${quizId}`;
+                    this.ws = new WebSocket(wsUrl);
+
+                    this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
+
+                    this.ws.onerror = (e) => {
+                        console.error("WebSocket Error", e);
+                        alert("Bağlantı hatası! Lütfen sayfayı yenileyin.");
+                    };
+                },
+
+                handleMessage(data) {
+                    console.log("Host Msg:", data);
+
+                    if (data.type === 'GAME_CREATED') {
+                        this.pin = data.pin;
+                        this.settings = data.settings || {};
+                        this.playMusic('lobby');
+
+                        // Generate QR Code
                         setTimeout(() => {
-                            this.podiumStep = 3;
-                            this.fireWinnerConfetti();
-                            this.fireConfetti(5000);
-                        }, 4500);
-                    },
-
-                    startTimer(seconds) {
-                        if (this.timerInterval) clearInterval(this.timerInterval);
-                        this.timer = seconds;
-
-                        this.timerInterval = setInterval(() => {
-                            this.timer--;
-                            if (this.timer <= 0) {
-                                clearInterval(this.timerInterval);
-                                this.showAnswer = true;
-                                this.simplePlay('timeup'); // Play time's up sound
-                                this.playMusic('lobby'); // Return to lobby music distinct from high-tension question music
-                                // Auto show leaderboard OR show manual next button based on settings
-                                const showLeaderboard = this.settings.show_leaderboard_every_question !== false; // Default true if undefined
-                                const isLastQuestion = this.currentQuestionIndex >= this.totalQuestions - 1;
-
-                                if (showLeaderboard || isLastQuestion) {
-                                    setTimeout(() => {
-                                        this.ws.send(JSON.stringify({ type: 'SHOW_LEADERBOARD' }));
-                                    }, 5000);
-                                }
-                                // Else: Stay on this screen, show manual button (handled in HTML)
-                            }
-                            if (this.timer === 3) this.simplePlay('countdown');
-                        }, 1000);
-                    },
-
-                    startGame() {
-                        this.ws.send(JSON.stringify({ type: 'START_GAME' }));
-                    },
-
-                    nextQuestion() {
-                        this.ws.send(JSON.stringify({ type: 'NEXT_QUESTION' }));
+                            const joinUrl = `http://${this.hostIp}:${this.port}/?pin=${this.pin}`;
+                            new QRCode(document.getElementById("qrcode"), {
+                                text: joinUrl,
+                                width: 128,
+                                height: 128,
+                                colorDark: "#4f46e5",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                        }, 100);
                     }
-                }));
-            });
+                    else if (data.type === 'PLAYER_JOINED') {
+                        this.players.push(data.nickname);
+                        this.simplePlay('join');
+                    }
+                    else if (data.type === 'NEW_QUESTION') {
+                        this.state = 'QUESTION';
+                        this.currentQuestion = data.question;
+                        this.currentQuestionIndex = data.index;
+                        this.totalQuestions = data.total;
+                        this.showAnswer = false;
+
+                        this.playMusic('question');
+                        this.startTimer(data.question.time);
+                        this.answeredCount = 0; // Reset count
+                    }
+                    else if (data.type === 'ANSWER_UPDATE') {
+                        this.answeredCount = data.count;
+                    }
+                    else if (data.type === 'LEADERBOARD') {
+                        this.state = 'LEADERBOARD';
+                        this.leaderboard = data.data;
+                        // Fire confetti if there is a 'winner' (top of list)
+                        if (this.leaderboard.length > 0) {
+                            this.fireWinnerConfetti();
+                            this.simplePlay('end'); // Use end/chime sound for leaderboard
+                        }
+                    }
+                    else if (data.type === 'GAME_OVER') {
+                        this.state = 'END';
+                        this.playMusic('end');
+
+                        // Start Podium Sequence
+                        this.startPodiumSequence();
+                    }
+                },
+
+                startPodiumSequence() {
+                    this.podiumStep = 0;
+
+                    // Show 3rd
+                    setTimeout(() => { if (this.leaderboard.length > 2) this.simplePlay('lobby'); this.podiumStep = 1; }, 500);
+
+                    // Show 2nd
+                    setTimeout(() => { if (this.leaderboard.length > 1) this.simplePlay('lobby'); this.podiumStep = 2; }, 2500);
+
+                    // Show 1st
+                    setTimeout(() => {
+                        this.podiumStep = 3;
+                        this.fireWinnerConfetti();
+                        this.fireConfetti(5000);
+                    }, 4500);
+                },
+
+                startTimer(seconds) {
+                    if (this.timerInterval) clearInterval(this.timerInterval);
+                    this.timer = seconds;
+
+                    this.timerInterval = setInterval(() => {
+                        this.timer--;
+                        if (this.timer <= 0) {
+                            clearInterval(this.timerInterval);
+                            this.showAnswer = true;
+                            this.simplePlay('timeup'); // Play time's up sound
+                            this.playMusic('lobby'); // Return to lobby music distinct from high-tension question music
+                            // Auto show leaderboard OR show manual next button based on settings
+                            const showLeaderboard = this.settings.show_leaderboard_every_question !== false; // Default true if undefined
+                            const isLastQuestion = this.currentQuestionIndex >= this.totalQuestions - 1;
+
+                            if (showLeaderboard || isLastQuestion) {
+                                setTimeout(() => {
+                                    this.ws.send(JSON.stringify({ type: 'SHOW_LEADERBOARD' }));
+                                }, 5000);
+                            }
+                            // Else: Stay on this screen, show manual button (handled in HTML)
+                        }
+                        if (this.timer === 3) this.simplePlay('countdown');
+                    }, 1000);
+                },
+
+                startGame() {
+                    this.ws.send(JSON.stringify({ type: 'START_GAME' }));
+                },
+
+                nextQuestion() {
+                    this.ws.send(JSON.stringify({ type: 'NEXT_QUESTION' }));
+                }
+            }
+        }
     </script>
 </body>
 

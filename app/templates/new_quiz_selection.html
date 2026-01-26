@@ -6,7 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BiSual - Yarışma Oluştur</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/theme.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <style>
@@ -14,6 +20,12 @@
             font-family: 'Outfit', sans-serif;
             background-color: #020617;
             color: white;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        html:not(.dark) body {
+            background-color: #f8fafc;
+            color: #1e293b;
         }
     </style>
     <script>
@@ -30,7 +42,7 @@
     <!-- Background -->
     <div class="absolute inset-0 z-0">
         <div
-            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-900 to-black">
+            class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-900 to-black dark:from-indigo-900/40 dark:via-slate-900 dark:to-black from-indigo-200/40 via-slate-100 to-white transition-colors duration-500">
         </div>
     </div>
 
@@ -52,14 +64,14 @@
 
             <!-- Manual -->
             <a href="/create"
-                class="group bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500 rounded-3xl p-8 transition-all hover:-translate-y-2 cursor-pointer relative overflow-hidden">
+                class="group bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-indigo-500 rounded-3xl p-8 transition-all hover:-translate-y-2 cursor-pointer relative overflow-hidden shadow-lg">
                 <div class="absolute inset-0 bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition"></div>
                 <div
-                    class="w-20 h-20 rounded-2xl bg-slate-700 group-hover:bg-indigo-600 flex items-center justify-center mx-auto mb-6 transition shadow-xl">
+                    class="w-20 h-20 rounded-2xl bg-indigo-50 dark:bg-slate-700 group-hover:bg-indigo-600 flex items-center justify-center mx-auto mb-6 transition shadow-xl text-indigo-600 dark:text-white group-hover:text-white">
                     <span class="text-4xl">✍️</span>
                 </div>
-                <h3 class="text-2xl font-bold text-white mb-2">El ile Oluştur</h3>
-                <p class="text-slate-400 text-sm">Soruları tek tek kendiniz yazın.</p>
+                <h3 class="text-2xl font-bold text-slate-800 dark:text-white mb-2">El ile Oluştur</h3>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Soruları tek tek kendiniz yazın.</p>
             </a>
 
             <!-- AI -->

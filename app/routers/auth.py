@@ -3,10 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models
-from fastapi.templating import Jinja2Templates
+from ..database import get_db
+from .. import models
+from app.core.templates import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
+# templates = Jinja2Templates(directory="app/templates") -> Imported from core
 
 # --- LOGIN ---
 @router.get("/login", response_class=HTMLResponse)
@@ -70,6 +72,43 @@ async def register(
     db.commit()
     
     return templates.TemplateResponse("register.html", {"request": request, "success": "Kayıt başarılı! Yönetici onayı bekleniyor."})
+
+@router.post("/auth/update")
+async def update_profile(
+    request: Request,
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    username: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    password: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    user_cookie = request.cookies.get("user_session")
+    if not user_cookie: return RedirectResponse("/login")
+    
+    user = db.query(models.User).filter(models.User.username == user_cookie).first()
+    if not user: return RedirectResponse("/login")
+    
+    # Update fields
+    user.first_name = first_name
+    user.last_name = last_name
+    user.username = username
+    user.email = email
+    user.phone = phone
+    
+    if password and len(password.strip()) > 0:
+        user.password = password
+        
+    db.commit()
+    
+    # If username changed, update cookie (or just redirect which might be weird if cookie mismatch)
+    # Ideally we should update the cookie if username changed.
+    response = RedirectResponse(url="/host", status_code=status.HTTP_303_SEE_OTHER)
+    if user.username != user_cookie:
+        response.set_cookie(key="user_session", value=user.username)
+        
+    return response
 
 # --- LOGOUT ---
 @router.get("/logout")

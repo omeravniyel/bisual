@@ -6,30 +6,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BiSual - Oyna</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/theme.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
             background-color: #020617;
-            background-image:
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
-            background-attachment: fixed;
+            /* Mesh-bg and Light-bg handle the background images now */
             color: white;
             user-select: none;
             overflow: hidden;
             overscroll-behavior: none;
             touch-action: none;
+            transition: background-color 0.5s ease, color 0.5s ease;
+        }
+
+        /* Dark Mode Background */
+        .mesh-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        /* Light Mode Background */
+        .light-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(at 0% 0%, hsla(210, 100%, 96%, 1) 0, transparent 50%),
+                radial-gradient(at 50% 0%, hsla(220, 100%, 90%, 1) 0, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(190, 100%, 95%, 1) 0, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        html:not(.dark) .mesh-bg {
+            opacity: 0;
+        }
+
+        html:not(.dark) .light-bg {
+            opacity: 1;
+        }
+
+        /* Text Colors */
+        html:not(.dark) body {
+            color: #1e293b;
+            background-color: #f8fafc;
+        }
+
+        html.dark body {
+            color: white;
+            background-color: #020617;
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+        }
+
+        html.dark .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .input-glass {
@@ -46,40 +100,36 @@
         }
 
         .btn-premium {
-            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(to bottom, #6366f1, #4f46e5);
+            box-shadow: 0 6px 0 #312e81, 0 15px 20px rgba(0, 0, 0, 0.4);
+            transition: all 0.1s;
+            transform: translateY(0);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
         }
 
         .btn-premium:active {
-            transform: scale(0.98);
-            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+            transform: translateY(6px);
+            box-shadow: 0 0 0 #312e81, 0 5px 10px rgba(0, 0, 0, 0.4);
         }
 
         .answer-btn {
             position: relative;
             overflow: hidden;
-            transition: all 0.2s;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .answer-btn::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
-            pointer-events: none;
+            transition: all 0.1s;
+            border-bottom: 6px solid rgba(0, 0, 0, 0.3);
+            transform: translateY(0);
         }
 
         .answer-btn:active {
-            transform: scale(0.96);
+            transform: translateY(6px);
+            border-bottom-width: 0;
+            margin-bottom: 6px;
+            /* Prevent layout shift */
         }
 
         /* Animations */
-        @keyframes float {
+        @keyframes bounce {
 
             0%,
             100% {
@@ -91,8 +141,8 @@
             }
         }
 
-        .animate-float {
-            animation: float 4s ease-in-out infinite;
+        .animate-bounce-slow {
+            animation: bounce 3s infinite;
         }
 
         @keyframes pulse-ring {
@@ -125,7 +175,10 @@
     </style>
 </head>
 
-<body class="h-screen flex flex-col" x-data="playerGame()" x-cloak>
+<body class="h-screen w-screen flex flex-col" x-data="gameLogic()" x-init="init()" x-cloak>
+
+    <div class="mesh-bg"></div>
+    <div class="light-bg"></div>
 
     <!-- Background Music -->
     <audio id="waitingMusic" loop>
@@ -192,25 +245,32 @@
         class="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden"
         x-transition.opacity>
 
-        <div class="relative w-32 h-32 flex items-center justify-center mb-8 ring-animation">
+        <!-- New Pulse Animation -->
+        <div class="relative w-40 h-40 flex items-center justify-center mb-12">
+            <div class="absolute inset-0 bg-indigo-500 rounded-full animate-ping opacity-20 duration-1000"></div>
+            <div class="absolute inset-4 bg-purple-500 rounded-full animate-ping opacity-20 duration-1000 delay-300">
+            </div>
+
             <div
-                class="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center relative z-10 shadow-xl border-4 border-slate-700">
-                <span class="text-4xl animate-bounce">⏳</span>
+                class="w-32 h-32 bg-slate-900 rounded-full flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(99,102,241,0.5)] border-4 border-slate-800">
+                <span class="text-5xl animate-[bounce_2s_infinite]">⏳</span>
+            </div>
+
+            <!-- Orbiting Particles -->
+            <div class="absolute inset-0 animate-spin duration-[10s] linear">
+                <div
+                    class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 w-4 h-4 bg-cyan-400 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.8)]">
+                </div>
             </div>
         </div>
 
         <h2
             class="text-4xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-            İçeridesin!
+            Hazır Ol!
         </h2>
 
-        <div class="glass-panel px-6 py-4 rounded-2xl mb-8 max-w-xs mx-auto">
-            <p class="text-slate-300 text-lg">Yarışma ekranına bak...</p>
-            <div class="mt-2 flex justify-center gap-1">
-                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0s"></div>
-                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-            </div>
+        <div class="glass-panel px-8 py-6 rounded-2xl mb-8 max-w-xs mx-auto backdrop-blur-xl border border-white/10">
+            <p class="text-slate-600 dark:text-slate-300 text-lg font-medium">Gözün ekranda olsun...</p>
         </div>
 
         <!-- Music Toggle -->
@@ -559,6 +619,9 @@
 
                 submitAnswer(answer) {
                     if (this.state !== 'ANSWERING') return;
+
+                    // Haptic Feedback
+                    if (navigator.vibrate) navigator.vibrate(50);
 
                     const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
                     const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);

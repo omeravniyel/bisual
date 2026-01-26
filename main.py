@@ -5,31 +5,28 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import text
 from app.database import engine, SessionLocal
 from app.routers import quiz, game, auth, import_quiz, ai_quiz
-from app.core.csrf import CSRFMiddleware, get_csrf_token
+from app.core.csrf import CSRFMiddleware, get_csrf_token, validate_csrf
 from app import models
 import shutil
 import uuid
 import sys
 import os
 from dotenv import load_dotenv
+from fastapi import Depends
 
 load_dotenv()
 
-app = FastAPI(title="BiSual - Interactive Quiz Platform")
+app = FastAPI(
+    title="BiSual - Interactive Quiz Platform"
+)
 
-# Add CSRF Middleware
+# Add CSRF Middleware (Cookie Setter)
 app.add_middleware(CSRFMiddleware)
 
-# Helper for PyInstaller path
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+from app.core.templates import templates, resource_path
 
-    return os.path.join(base_path, relative_path)
+# Helper for PyInstaller path - Imported from core.templates
+# def resource_path(relative_path): ...
 
 # Exception Handler for Debugging Production 500s
 @app.exception_handler(Exception)
@@ -95,7 +92,7 @@ else:
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-app.mount("/static/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Include Routers
 app.include_router(auth.router, tags=["auth"])
@@ -116,13 +113,11 @@ def create_initial_user():
     db.close()
 
 # Templates
-templates = Jinja2Templates(directory=resource_path("app/templates"))
+# templates = Jinja2Templates(...) -> Imported from app.core.templates
 
-# Inject CSRF token function into templates
-def csrf_token_func(request: Request):
-    return get_csrf_token(request)
-
-templates.env.globals['csrf_token'] = csrf_token_func
+# Inject CSRF token function -> Handled in app.core.templates
+# def csrf_token_func(request: Request): ...
+# templates.env.globals['csrf_token'] = csrf_token_func
 
 @app.post("/upload")
 async def upload_image(file: UploadFile = File(...)):
@@ -137,7 +132,7 @@ async def upload_image(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
-    return {"url": f"/static/uploads/{filename}"}
+    return {"url": f"/uploads/{filename}"}
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):

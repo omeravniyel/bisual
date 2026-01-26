@@ -6,20 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BiSual - Giriş</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/static/js/bg-animation.js"></script>
+    <script src="/static/js/theme.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Outfit:wght@500;900&display=swap"
         rel="stylesheet">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background-color: #000;
-            overflow: hidden;
-            color: white;
+            transition: background-color 0.5s ease, color 0.5s ease;
         }
 
-        /* Animated Mesh Gradient Background */
+        /* Animated Mesh Gradient Background (Dark Mode Default) */
         .mesh-bg {
-            position: absolute;
+            position: fixed;
             inset: 0;
             z-index: 0;
             background:
@@ -28,85 +33,94 @@
                 radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
             background-size: 200% 200%;
             animation: moveGradient 15s ease infinite alternate;
+            opacity: 1;
+            transition: opacity 0.5s;
         }
 
-        .orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(80px);
+        /* Light Mode "Frosted Aurora" Background */
+        .light-bg {
+            position: fixed;
+            inset: 0;
             z-index: 0;
-            animation: floatOrb 10s ease-in-out infinite;
+            background-color: #fff;
+            background-image:
+                radial-gradient(at 10% 10%, hsla(256, 90%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, hsla(320, 80%, 94%, 1) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, hsla(192, 90%, 94%, 1) 0px, transparent 50%),
+                radial-gradient(at 10% 90%, hsla(280, 80%, 96%, 1) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, hsla(340, 100%, 96%, 1) 0px, transparent 50%);
+            background-size: 150% 150%;
+            animation: moveGradient 25s ease infinite alternate;
+            opacity: 0;
+            transition: opacity 0.5s;
         }
 
-        .orb-1 {
-            width: 400px;
-            height: 400px;
-            background: #4f46e5;
-            top: 10%;
-            left: 20%;
-            animation-delay: 0s;
+        html:not(.dark) .mesh-bg {
+            opacity: 0;
         }
 
-        .orb-2 {
-            width: 300px;
-            height: 300px;
-            background: #db2777;
-            bottom: 20%;
-            right: 10%;
-            animation-delay: -2s;
+        html:not(.dark) .light-bg {
+            opacity: 1;
         }
 
-        .orb-3 {
-            width: 200px;
-            height: 200px;
-            background: #9333ea;
-            top: 40%;
-            left: 60%;
-            animation-delay: -5s;
+        /* Text Colors */
+        html:not(.dark) body {
+            color: #0f172a;
+            /* Slate 900 for sharp contrast */
+            background-color: #ffffff;
         }
 
-        @keyframes moveGradient {
-            0% {
-                background-position: 0% 0%;
-            }
-
-            100% {
-                background-position: 100% 100%;
-            }
+        html.dark body {
+            color: white;
+            background-color: #000;
         }
 
-        @keyframes floatOrb {
+        /* ... Animations ... */
 
-            0%,
-            100% {
-                transform: translate(0, 0);
-            }
-
-            50% {
-                transform: translate(30px, -30px);
-            }
-        }
-
-        /* Glassmorphism */
+        /* Glassmorphism Redesign */
         .glass {
-            background: rgba(255, 255, 255, 0.05);
+            /* Light Mode Default: Premium Frosted Glass */
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(24px) saturate(180%);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow:
+                0 4px 6px -1px rgba(0, 0, 0, 0.02),
+                0 10px 15px -3px rgba(0, 0, 0, 0.02),
+                inset 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        html.dark .glass {
+            /* Dark Mode: Deep Space Glass */
+            background: rgba(20, 20, 30, 0.4);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
         }
 
         /* Input Animation */
         .input-animate:focus {
-            transform: scale(1.02);
-            box-shadow: 0 0 30px rgba(79, 70, 229, 0.4);
+            transform: scale(1.05);
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%) skewX(-15deg);
+            }
+
+            100% {
+                transform: translateX(200%) skewX(-15deg);
+            }
         }
     </style>
 </head>
 
-<body class="h-screen flex flex-col relative">
+<body class="min-h-screen flex flex-col relative overflow-x-hidden">
 
     <!-- Background Elements -->
     <div class="mesh-bg"></div>
+    <div class="light-bg"></div>
     <div class="orb orb-1 opacity-50"></div>
     <div class="orb orb-2 opacity-50"></div>
     <div class="orb orb-3 opacity-40"></div>
@@ -117,7 +131,7 @@
             class="text-3xl font-black tracking-tighter bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
             BiSual</div>
         <a href="/login"
-            class="text-white/70 hover:text-white font-bold bg-white/10 px-6 py-2 rounded-full transition hover:bg-white/20 backdrop-blur-sm text-sm border border-white/5">
+            class="text-slate-600 dark:text-white/70 hover:text-indigo-600 dark:hover:text-white font-bold bg-white/40 dark:bg-white/10 px-6 py-2 rounded-full transition hover:bg-white/60 dark:hover:bg-white/20 backdrop-blur-sm text-sm border border-slate-200 dark:border-white/5 shadow-sm">
             Giriş Yap
         </a>
     </nav>
@@ -127,43 +141,234 @@
          }">
 
         <!-- Hero -->
-        <div class="mb-12 text-center">
-            <h1 class="text-6xl md:text-8xl font-black mb-2 tracking-tight drop-shadow-2xl">
-                <span class="inline-block hover:scale-110 transition cursor-default text-indigo-400">Y</span>
-                <span class="inline-block hover:scale-110 transition cursor-default text-pink-500">a</span>
-                <span class="inline-block hover:scale-110 transition cursor-default text-purple-500">r</span>
-                <span class="inline-block hover:scale-110 transition cursor-default text-blue-500">ı</span>
-                <span class="inline-block hover:scale-110 transition cursor-default text-green-400">ş</span>
+        <div class="mb-12 text-center relative group">
+            <div
+                class="absolute -inset-10 bg-indigo-500/20 blur-[100px] rounded-full opacity-0 group-hover:opacity-100 transition duration-1000">
+            </div>
+
+            <h1 class="text-7xl md:text-9xl font-black mb-4 tracking-tighter drop-shadow-2xl relative z-10">
+                <span
+                    class="inline-block hover:-translate-y-4 transition duration-300 cursor-default text-transparent bg-clip-text bg-gradient-to-b from-slate-600 to-slate-900 dark:from-white dark:to-slate-400 drop-shadow-md dark:drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">BiSual</span>
             </h1>
-            <p class="text-xl text-white/60 font-medium">Hemen katıl ve kendini göster!</p>
+            <p class="text-2xl text-slate-700 dark:text-indigo-200 font-bold tracking-wide">Yeni nesil yarışma
+                deneyimi</p>
         </div>
 
         <!-- Join Card -->
         <div
-            class="glass p-8 rounded-3xl shadow-2xl w-full max-w-sm transform transition hover:scale-[1.01] duration-500">
-            <div class="space-y-4">
-                <div>
+            class="glass p-10 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] dark:shadow-2xl w-full max-w-sm transform transition hover:scale-[1.02] duration-500 relative overflow-hidden">
+
+            <!-- Shimmer Effect -->
+            <div
+                class="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent skew-x-12 animate-[shimmer_3s_infinite]">
+            </div>
+
+            <div class="space-y-6 relative z-10">
+                <div class="relative group">
                     <input type="tel" x-model="pin"
-                        class="w-full bg-black/40 border-2 border-white/10 rounded-2xl p-5 text-center text-3xl font-bold text-white placeholder-white/20 outline-none transition duration-300 input-animate focus:border-indigo-500/50"
+                        class="w-full bg-white dark:bg-black/50 border-2 border-slate-200 dark:border-white/5 rounded-2xl p-6 text-center text-4xl font-black text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-white/10 outline-none transition duration-300 input-animate focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:focus:bg-black/70 tracking-widest shadow-inner"
                         placeholder="PIN" maxlength="6" autofocus>
+                    <div class="absolute inset-0 rounded-2xl ring-2 ring-indigo-500/10 pointer-events-none"></div>
                 </div>
 
                 <button @click="if(pin.length>0) window.location.href='/play?pin='+pin"
-                    class="w-full bg-white text-black font-black py-5 rounded-2xl text-xl hover:bg-slate-200 transition-all transform active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.3)]">
-                    Oyuna Katıl 🚀
+                    class="w-full bg-slate-900 dark:bg-gradient-to-r dark:from-indigo-600 dark:to-purple-600 text-white font-black py-5 rounded-2xl text-xl hover:shadow-xl dark:hover:shadow-[0_0_40px_rgba(79,70,229,0.6)] transition-all transform active:scale-95 border-t border-white/10 relative overflow-hidden group shadow-lg">
+                    <span class="relative z-10 flex items-center justify-center gap-2">
+                        KATIL <span class="group-hover:translate-x-1 transition-transform">🚀</span>
+                    </span>
                 </button>
             </div>
         </div>
 
-        <div class="mt-8 flex gap-4 opacity-50">
-            <div class="w-12 h-12 bg-indigo-500 rounded-lg transform rotate-12 animate-bounce"
-                style="animation-duration: 3s;"></div>
-            <div class="w-12 h-12 bg-pink-500 rounded-full animate-bounce" style="animation-duration: 4s;"></div>
-            <div class="w-12 h-12 bg-green-500 transform rotate-45 animate-bounce" style="animation-duration: 2.5s;">
-            </div>
+        <!-- Floating Icons -->
+        <div class="mt-12 flex gap-8 opacity-60 dark:opacity-40 grayscale hover:grayscale-0 transition duration-700">
+            <div
+                class="w-16 h-16 bg-white dark:bg-slate-800/50 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/10 animate-[bounce_3s_infinite] shadow-lg text-2xl">
+                🎮</div>
+            <div
+                class="w-16 h-16 bg-white dark:bg-slate-800/50 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/10 animate-[bounce_4s_infinite_0.5s] shadow-lg text-2xl">
+                🏆</div>
+            <div
+                class="w-16 h-16 bg-white dark:bg-slate-800/50 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 dark:border-white/10 animate-[bounce_3.5s_infinite_1s] shadow-lg text-2xl">
+                ⚡</div>
         </div>
 
     </div>
+
+    <!-- Scroll Hint -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce opacity-50 text-slate-400 dark:text-white">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+        </svg>
+    </div>
+
+    <!-- FEATURES SECTION -->
+    <section class="relative z-10 py-32 px-6">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-5xl font-black text-center mb-20">
+                <span
+                    class="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 text-transparent bg-clip-text">Neden
+                    BiSual?</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div
+                    class="glass p-8 rounded-3xl hover:-translate-y-2 transition duration-500 group border border-white/60 dark:border-white/10 shadow-lg shadow-indigo-500/5 dark:shadow-none bg-white/40 dark:bg-transparent">
+                    <div
+                        class="w-16 h-16 bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-500/20 dark:to-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition shadow-sm">
+                        <span class="text-4xl filter drop-shadow-sm">✨</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white tracking-tight">Yapay Zeka
+                        Destekli</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                        Soru yazmakla vakit kaybetmeyin. Konuyu Gemini AI'a söyleyin, saniyeler içinde benzersiz bir
+                        yarışma hazırlasın.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div
+                    class="glass p-8 rounded-3xl hover:-translate-y-2 transition duration-500 group border border-white/60 dark:border-white/10 shadow-lg shadow-purple-500/5 dark:shadow-none bg-white/40 dark:bg-transparent">
+                    <div
+                        class="w-16 h-16 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-500/20 dark:to-purple-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition shadow-sm">
+                        <span class="text-4xl filter drop-shadow-sm">📊</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white tracking-tight">Canlı Analiz</h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                        Anlık liderlik tabloları ve detaylı maç sonu raporlarıyla sınıfın nabzını tutun. Rekabeti
+                        veriyle yönetin.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div
+                    class="glass p-8 rounded-3xl hover:-translate-y-2 transition duration-500 group border border-white/60 dark:border-white/10 shadow-lg shadow-pink-500/5 dark:shadow-none bg-white/40 dark:bg-transparent">
+                    <div
+                        class="w-16 h-16 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-500/20 dark:to-pink-500/10 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition shadow-sm">
+                        <span class="text-4xl filter drop-shadow-sm">🎨</span>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4 text-slate-900 dark:text-white tracking-tight">Büyüleyici Tasarım
+                    </h3>
+                    <p class="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                        Neon ışıklar, akıcı animasyonlar ve modern arayüz ile öğrencilerin dikkatini asla kaybetmeyin.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="relative z-10 py-20 px-6 bg-gradient-to-b from-transparent to-slate-200/50 dark:to-black/50">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="text-5xl font-black text-center mb-20 text-slate-800 dark:text-white">Nasıl Çalışır?</h2>
+
+            <div class="space-y-12">
+                <!-- Step 1 -->
+                <div
+                    class="flex flex-col md:flex-row items-center gap-8 glass p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-xl">
+                    <div class="text-8xl font-black text-slate-200 dark:text-white/10">01</div>
+                    <div>
+                        <h3 class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-2">Oluştur</h3>
+                        <p class="text-xl text-slate-600 dark:text-slate-300">İster manuel, ister AI yardımıyla
+                            yarışmanı hazırla. Görseller
+                            ekle, süreleri ayarla.</p>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div
+                    class="flex flex-col md:flex-row-reverse items-center gap-8 glass p-8 rounded-3xl border-purple-500/30 border shadow-xl">
+                    <div class="text-8xl font-black text-slate-200 dark:text-white/10">02</div>
+                    <div>
+                        <h3
+                            class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2 text-right md:text-left">
+                            Paylaş</h3>
+                        <p class="text-xl text-slate-600 dark:text-slate-300 text-right md:text-left">Ekranda çıkan 6
+                            haneli PIN kodunu
+                            öğrencilerinle paylaş. Uygulama indirmelerine gerek yok!</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div
+                    class="flex flex-col md:flex-row items-center gap-8 glass p-8 rounded-3xl border-green-500/30 border shadow-xl">
+                    <div class="text-8xl font-black text-slate-200 dark:text-white/10">03</div>
+                    <div>
+                        <h3 class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">Yarış</h3>
+                        <p class="text-xl text-slate-600 dark:text-slate-300">Heyecanı başlat. Doğru cevapları, puan
+                            durumunu ve kazananları
+                            dev ekranda göster.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS & CTA -->
+    <section class="relative z-10 py-24 px-6 text-center">
+        <div
+            class="glass max-w-4xl mx-auto p-12 rounded-[3rem] border border-white/20 relative overflow-hidden shadow-2xl">
+            <div class="absolute inset-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20"></div>
+
+            <div class="relative z-10">
+                <div class="text-sm font-bold tracking-widest uppercase text-indigo-600 dark:text-indigo-300 mb-4">
+                    TOPLULUĞA KATIL</div>
+                <h2 class="text-5xl md:text-6xl font-black mb-8 text-slate-800 dark:text-white">Eğlenceli Öğrenme
+                    Başlasın</h2>
+
+                <div class="flex justify-center gap-12 mb-12">
+                    <div>
+                        <div class="text-4xl font-black text-slate-800 dark:text-white">1,250+</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-sm">Oluşturulan Yarışma</div>
+                    </div>
+                    <div>
+                        <div class="text-4xl font-black text-slate-800 dark:text-white">50k+</div>
+                        <div class="text-slate-500 dark:text-slate-400 text-sm">Katılımcı Öğrenci</div>
+                    </div>
+                </div>
+
+                <a href="/register"
+                    class="inline-block bg-slate-900 dark:bg-white text-white dark:text-black font-black text-xl px-12 py-5 rounded-2xl hover:scale-105 hover:shadow-[0_0_40px_rgba(79,70,229,0.4)] transition duration-300">
+                    Hemen Başla - Ücretsiz
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer
+        class="relative z-10 py-12 text-center text-slate-500 dark:text-slate-400 text-sm glass border-t border-white/60 dark:border-white/10 mt-12 backdrop-blur-md bg-white/60 dark:bg-black/40">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 mb-8">
+                <div class="text-left">
+                    <div class="font-bold text-slate-900 dark:text-white text-lg mb-1">İbrahim Buğra Çopur</div>
+                    <div class="text-xs opacity-60 text-slate-600 dark:text-slate-400">Geliştirici & Tasarımcı</div>
+                </div>
+
+                <div class="flex gap-6">
+                    <a href="https://wa.me/905368129353" target="_blank"
+                        class="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition group font-medium">
+                        <span class="text-xl group-hover:scale-110 transition">📱</span>
+                        <span>WhatsApp</span>
+                    </a>
+                    <a href="mailto:bugracopur@gmail.com"
+                        class="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition group font-medium">
+                        <span class="text-xl group-hover:scale-110 transition">📧</span>
+                        <span>E-posta</span>
+                    </a>
+                </div>
+            </div>
+
+            <div
+                class="border-t border-slate-200 dark:border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 dark:text-slate-500">
+                <div>&copy; 2024 BiSual. Tüm hakları saklıdır.</div>
+                <div class="flex gap-4 text-xs opacity-70">
+                    <a href="#" class="hover:text-slate-900 dark:hover:text-white transition">Gizlilik Politikası</a>
+                    <a href="#" class="hover:text-slate-900 dark:hover:text-white transition">Kullanım Şartları</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
 </body>
 
