@@ -123,7 +123,10 @@ async def websocket_host(websocket: WebSocket, quiz_id: int):
 async def websocket_player(websocket: WebSocket, pin: str, nickname: str):
     await websocket.accept()
     
-    joined = await game_manager.join_game(pin, nickname, websocket)
+    # Get avatar from query params
+    avatar = websocket.query_params.get("avatar", "👤")
+    
+    joined = await game_manager.join_game(pin, nickname, websocket, avatar=avatar)
     if not joined:
         await websocket.send_json({"type": "ERROR", "message": "Game not found"})
         await websocket.close()
@@ -144,4 +147,5 @@ async def websocket_player(websocket: WebSocket, pin: str, nickname: str):
 
     except WebSocketDisconnect:
         # Handle player leaving if needed
+        # TODO: Notify host?
         pass

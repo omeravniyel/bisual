@@ -90,18 +90,21 @@ class GameManager:
         """Check if a game with given PIN exists"""
         return self.active_games.get(pin)
 
-    async def join_game(self, pin: str, nickname: str, player_ws: WebSocket) -> bool:
+    async def join_game(self, pin: str, nickname: str, player_ws: WebSocket, avatar: str = "👤") -> bool:
         if pin in self.active_games:
             session = self.active_games[pin]
             # Simple unique ID for player connection (can use ws object or random ID)
-            session.players[nickname] = Player(nickname, player_ws)
+            p = Player(nickname, player_ws)
+            p.avatar = avatar
+            session.players[nickname] = p
             
             # Notify Host about new player
-            players_list = [{"nickname": p.nickname, "avatar": p.avatar if hasattr(p, 'avatar') else "👤"} for p in session.players.values()]
+            players_list = [{"nickname": p.nickname, "avatar": p.avatar} for p in session.players.values()]
             
             await session.host_websocket.send_json({
                 "type": "PLAYER_JOINED",
                 "nickname": nickname,
+                "avatar": avatar,
                 "count": len(session.players),
                 "players_list": players_list
             })

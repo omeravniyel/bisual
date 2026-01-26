@@ -227,6 +227,17 @@
             <p class="text-slate-400 mb-8 text-sm">Yarışmaya katılmak için ismini gir</p>
 
             <div class="space-y-4">
+                <!-- Avatar Selection -->
+                <div class="grid grid-cols-5 gap-2 mb-4">
+                    <template x-for="av in avatars" :key="av">
+                        <button @click="selectedAvatar = av"
+                            class="text-2xl p-2 rounded-xl border-2 transition-all transform hover:scale-110"
+                            :class="selectedAvatar === av ? 'border-indigo-500 bg-indigo-500/20 scale-110' : 'border-transparent hover:bg-white/5'">
+                            <span x-text="av"></span>
+                        </button>
+                    </template>
+                </div>
+
                 <div class="relative">
                     <input type="text" x-model="nickname"
                         class="input-glass w-full rounded-2xl p-4 text-center text-xl font-bold outline-none placeholder-slate-500"
@@ -531,175 +542,205 @@
         <div class="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10"></div>
     </div>
 
+    <!-- 7. LEADERBOARD -->
+    <div x-show="state === 'LEADERBOARD'" class="flex-1 flex flex-col items-center justify-center p-6 text-center"
+        x-transition.opacity>
+        <h2 class="text-4xl font-black text-white mb-6">Liderlik Tablosu</h2>
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-md">
+            <template x-for="(player, index) in leaderboardData" :key="player.nickname">
+                <div class="flex items-center justify-between py-3 border-b border-white/10 last:border-b-0">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xl font-bold text-indigo-300" x-text="index + 1 + '.'"></span>
+                        <span class="text-2xl" x-text="player.avatar"></span>
+                        <span class="text-xl font-bold text-white" x-text="player.nickname"></span>
+                    </div>
+                    <span class="text-xl font-bold text-indigo-400" x-text="player.score"></span>
+                </div>
+            </template>
+        </div>
+        <p class="text-slate-400 mt-6">Sıradaki soru bekleniyor...</p>
+    </div>
+
     <script>
         function playerGame() {
             return {
-                state: 'LOGIN', // LOGIN, WAITING, ANSWERING, FEEDBACK
-                pin: new URLSearchParams(window.location.search).get('pin') || '',
+                state: 'LOGIN', // LOGIN, WAITING, ANSWERING, ANSWER_SENT, FEEDBACK, LEADERBOARD, GAMEOVER
+                pin: '{{ pin }}',
                 nickname: '',
-                ws: null,
-                // Data
+                selectedAvatar: '👤', // Default
+                avatars: ['👤', '🐱', '🐶', '🦊', '🦁', '🐸', '🦄', '🤖', '👻', '👽', '💀', '🎃', '🤡', '🤠', '😎'],
                 score: 0,
-                lastResult: '',
-                lastPoints: 0,
                 streak: 0,
+                ws: null,
+                currentQuestion: {},
+                lastResult: null, // CORRECT, WRONG
+                lastPoints: 0,
+                questionStartTime: null,
+                textAnswer: '',
+                pinCoords: null,
                 timerValue: 0,
-                questionStartTime: 0,
-                timerPercent: 100,
                 timerPercent: 100,
                 timerInterval: null,
+                feedbackQuestion: '',
+                feedbackCorrectAnswer: '',
+                leaderboardData: [], // To store leaderboard data
 
                 sounds: {
-                    correct: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
-                    wrong: new Audio('https://actions.google.com/sounds/v1/cartoon/clown_horn.ogg'),
-                    click: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg')
+                    correct: new Audio('https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg'),
+                    wrong: new Audio('https://actions.google.com/sounds/v1/cartoon/clank_car_crash.ogg')
                 },
 
                 // Question Data
-                currentQuestion: {
-                    text: '',
-                    q_type: 'multiple_choice',
-                    image: '',
-                    time: 20
-                },
-                textAnswer: '',
-                pinCoords: null,
+                // currentQuestion: { // This block is now initialized above as currentQuestion: {}
+                //     text: '',
+                //     q_type: 'multiple_choice',
+                //     image: '',
+                //     time: 20
+                // },
+                // textAnswer: '', // Initialized above
+                // pinCoords: null, // Initialized above
                 theme: 'standard',
 
                 join() {
-                    if (this.pin.length < 1 || this.nickname.length < 1) return alert("Bilgileri doldurun.");
+                    const cleanName = this.nickname.trim();
+                    if (cleanName.length < 2) return alert("Lütfen geçerli bir isim giriniz (en az 2 karakter)");
 
                     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    const wsUrl = `${protocol}//${window.location.host}/ws/player/${this.pin}/${this.nickname}`;
-
-                    this.ws = new WebSocket(wsUrl);
+                    // Pass avatar in query
+                    this.ws = new WebSocket(`${protocol}//${window.location.host}/ws/player/${this.pin}/${encodeURIComponent(cleanName)}?avatar=${encodeURIComponent(this.selectedAvatar)}`);
 
                     this.ws.onopen = () => {
-                        this.state = 'WAITING';
+                        console.log('Connected');
+                        // Apply haptic check
+                        if (navigator.vibrate) navigator.vibrate(20);
                     };
 
-                    this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
+                    this.ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('WS msg:', data);
 
-                    this.ws.onclose = () => {
-                        console.log("Disconnected");
-                    };
-                },
-
-                handleMessage(data) {
-                    console.log("Msg:", data);
-
-                    if (data.type === 'ERROR') {
-                        alert(data.message);
-                        this.ws.close();
-                    }
-                    else if (data.type === 'GAME_JOINED') {
-                        this.state = 'WAITING';
-                        this.score = data.score;
-                        // Apply theme if sent
-                        if (data.theme) document.body.className = `theme-${data.theme}`;
-                        // Play waiting music
-                        const music = document.getElementById('waitingMusic');
-                        if (music) music.play().catch(e => console.log('Music autoplay blocked:', e));
-                    }
-                    else if (data.type === 'NEW_QUESTION') {
-                        this.state = 'ANSWERING';
-                        this.currentQuestion = data;
-                        this.questionStartTime = Date.now();
-
-                        // Pause waiting music
-                        const music = document.getElementById('waitingMusic');
-                        if (music) music.pause();
-
-                        // Reset Inputs
-                        this.textAnswer = '';
-                        this.pinCoords = null;
-
-                        // Timer logic
-                        this.startTimer(data.time);
-                    }
-                    else if (data.type === 'FEEDBACK') {
-                        this.state = 'FEEDBACK';
-                        this.lastResult = data.result;
-                        this.score = data.score;
-                        if (data.streak) this.streak = data.streak; else this.streak = 0;
-                        if (data.points_added) this.lastPoints = data.points_added;
-
-                        // New fields
-                        this.feedbackQuestion = data.question_text || '';
-                        this.feedbackCorrectAnswer = data.correct_answer || '';
-
-                        // Audio Feedback
-                        if (this.lastResult === 'CORRECT') {
-                            this.sounds.correct.currentTime = 0;
-                            this.sounds.correct.play().catch(e => { });
-                        } else {
-                            this.sounds.wrong.currentTime = 0;
-                            this.sounds.wrong.play().catch(e => { });
+                        if (data.type === 'ERROR') {
+                            alert(data.message);
+                            this.ws.close();
                         }
-
-                        setTimeout(() => {
-                            if (this.state === 'FEEDBACK') this.state = 'WAITING';
-                        }, 5000);
-                    }
-                    else if (data.type === 'QUESTION_RESULT') {
-                        // Optional: Show detail summary if needed
-                        // For now FEEDBACK handles mostly everything
-                        this.score = data.total_score;
-                        this.streak = data.streak;
-                    }
-                    else if (data.type === 'GAME_OVER') {
-                        alert("Oyun Bitti! Skorun: " + this.score);
-                        window.location.reload();
-                    }
-                },
-
-                submitAnswer(answer) {
-                    if (this.state !== 'ANSWERING') return;
-
-                    // Haptic Feedback
-                    if (navigator.vibrate) navigator.vibrate(50);
-
-                    const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
-                    const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);
-
-                    this.ws.send(JSON.stringify({
-                        type: 'SUBMIT_ANSWER',
-                        answer: answer,
-                        time_left: estTimeLeft
-                    }));
-
-                    this.state = 'ANSWER_SENT';
-                },
-
-                setPin(event) {
-                    const rect = event.target.getBoundingClientRect(); // Get image rect
-                    const x = ((event.clientX - rect.left) / rect.width) * 100;
-                    const y = ((event.clientY - rect.top) / rect.height) * 100;
-                    this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
-                },
-
-                startTimer(seconds) {
-                    clearInterval(this.timerInterval);
-                    this.timerPercent = 100;
-                    this.timerValue = seconds; // Set text timer
-                    const step = 100 / (seconds * 10);
-
-                    this.timerInterval = setInterval(() => {
-                        this.timerPercent -= step;
-                        // Update text timer every second approximately
-                        if (this.timerPercent % (100 / seconds) < step) {
-                            this.timerValue = Math.ceil(this.timerPercent / (100 / seconds));
+                        else if (data.type === 'GAME_JOINED') {
+                            this.state = 'WAITING';
+                            this.score = data.score;
+                            // Apply theme if sent
+                            if (data.theme) document.body.className = `theme-${data.theme}`;
+                            // Play waiting music
+                            const music = document.getElementById('waitingMusic');
+                            if (music) music.play().catch(e => console.log('Music autoplay blocked:', e));
                         }
+                        else if (data.type === 'NEW_QUESTION') {
+                            this.state = 'ANSWERING';
+                            this.currentQuestion = data;
+                            this.questionStartTime = Date.now();
 
-                        if (this.timerPercent <= 0) {
-                            clearInterval(this.timerInterval);
-                            this.timerValue = 0;
-                            // Time's up logic if needed
+                            // Pause waiting music
+                            const music = document.getElementById('waitingMusic');
+                            if (music) music.pause();
+
+                            // Reset Inputs
+                            this.textAnswer = '';
+                            this.pinCoords = null;
+                            this.feedbackQuestion = '';
+                            this.feedbackCorrectAnswer = '';
+
+                            // Timer logic
+                            this.startTimer(data.time);
                         }
-                    }, 100);
+                        else if (data.type === 'LEADERBOARD') {
+                            this.state = 'LEADERBOARD';
+                            // Data usually has 'data' list of players
+                            // But for player view we might just show "Waiting" or minimal list?
+                            // User asked: "Liderlik tablosu herkeste gözüksün" (Everyone sees leaderboard)
+                            // So we render the leaderboard list from data.data
+                            this.leaderboardData = data.data;
+                        }
+                        else if (data.type === 'FEEDBACK') {
+                            this.state = 'FEEDBACK';
+                            this.lastResult = data.result;
+                            this.score = data.score;
+                            if (data.streak) this.streak = data.streak; else this.streak = 0;
+                            if (data.points_added) this.lastPoints = data.points_added;
+
+                            this.feedbackQuestion = data.question_text || '';
+                            this.feedbackCorrectAnswer = data.correct_answer || '';
+
+                            // Audio
+                            if (this.lastResult === 'CORRECT') {
+                                this.sounds.correct.currentTime = 0;
+                                this.sounds.correct.play().catch(e => { });
+                            } else {
+                                this.sounds.wrong.currentTime = 0;
+                                this.sounds.wrong.play().catch(e => { });
+                            }
+
+                            // We stay on feedback until next question or leaderboard
+                            // Remove timeout auto-switch to WAITING if we want them to see it properly
+                            // But usually we switch to WAITING or LEADERBOARD when host proceeds.
+                            // Let's keep it creating a "Waiting" overlay or just stay.
+                        }
+                        else if (data.type === 'QUESTION_RESULT') {
+                            // Optional: Show detail summary if needed
+                            // For now FEEDBACK handles mostly everything
+                            this.score = data.total_score;
+                            this.streak = data.streak;
+                        }
+                        else if (data.type === 'GAME_OVER') {
+                            alert("Oyun Bitti! Skorun: " + this.score);
+                            window.location.reload();
+                        }
+                    },
+
+                        submitAnswer(answer) {
+                        if (this.state !== 'ANSWERING') return;
+
+                        // Haptic Feedback
+                        if (navigator.vibrate) navigator.vibrate(50);
+
+                        const timeElapsed = (Date.now() - this.questionStartTime) / 1000;
+                        const estTimeLeft = Math.max(0, this.currentQuestion.time - timeElapsed);
+
+                        this.ws.send(JSON.stringify({
+                            type: 'SUBMIT_ANSWER',
+                            answer: answer,
+                            time_left: estTimeLeft
+                        }));
+
+                        this.state = 'ANSWER_SENT';
+                    },
+
+                    setPin(event) {
+                        const rect = event.target.getBoundingClientRect(); // Get image rect
+                        const x = ((event.clientX - rect.left) / rect.width) * 100;
+                        const y = ((event.clientY - rect.top) / rect.height) * 100;
+                        this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
+                    },
+
+                    startTimer(seconds) {
+                        clearInterval(this.timerInterval);
+                        this.timerPercent = 100;
+                        this.timerValue = seconds; // Set text timer
+                        const step = 100 / (seconds * 10);
+
+                        this.timerInterval = setInterval(() => {
+                            this.timerPercent -= step;
+                            // Update text timer every second approximately
+                            if (this.timerPercent % (100 / seconds) < step) {
+                                this.timerValue = Math.ceil(this.timerPercent / (100 / seconds));
+                            }
+
+                            if (this.timerPercent <= 0) {
+                                clearInterval(this.timerInterval);
+                                this.timerValue = 0;
+                                // Time's up logic if needed
+                            }
+                        }, 100);
+                    }
                 }
             }
-        }
     </script>
 </body>
 
