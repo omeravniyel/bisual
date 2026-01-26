@@ -421,7 +421,14 @@
             <span class="text-4xl">🚀</span>
         </div>
         <h2 class="text-3xl font-black text-white mb-2">Cevap Gönderildi!</h2>
-        <p class="text-slate-400">Diğerlerini bekliyoruz...</p>
+        <p class="text-slate-400 mb-6">Diğerlerini bekliyoruz...</p>
+
+        <!-- Question Review -->
+        <div x-show="currentQuestion.text"
+            class="glass-panel p-4 rounded-xl w-full max-w-sm text-left border border-white/10">
+            <p class="text-slate-400 text-xs uppercase font-bold mb-1">SORU</p>
+            <p class="text-white font-medium leading-tight" x-text="currentQuestion.text"></p>
+        </div>
 
         <div class="mt-8 flex gap-2">
             <div class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
@@ -430,21 +437,42 @@
         </div>
     </div>
 
-    <!-- 5. RESULT SCREEN (Correct/Wrong feedback) -->
-    <!-- Note: To fully implement this, we need 'is_correct' info from server. For now, assuming server sends state update. -->
-    <div x-show="state === 'RESULT_CORRECT'" class="flex-1 flex flex-col items-center justify-center bg-green-600/90"
-        x-transition>
-        <div class="text-8xl mb-4 animate-bounce">✨</div>
-        <h2 class="text-5xl font-black text-white drop-shadow-md">DOĞRU!</h2>
-        <div class="mt-4 px-6 py-2 bg-black/20 rounded-full text-white/80 font-mono text-xl">+<span
-                x-text="lastPoints"></span> Puan</div>
-    </div>
+    <!-- 5. FEEDBACK SCREEN (Unified) -->
+    <div x-show="state === 'FEEDBACK'"
+        class="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 transition-colors duration-500"
+        :class="lastResult === 'CORRECT' ? 'bg-green-600' : 'bg-red-600'">
 
-    <div x-show="state === 'RESULT_WRONG'" class="flex-1 flex flex-col items-center justify-center bg-red-600/90"
-        x-transition>
-        <div class="text-8xl mb-4 animate-shake">❌</div>
-        <h2 class="text-5xl font-black text-white drop-shadow-md">YANLIŞ</h2>
-        <p class="text-white/70 mt-4 text-lg">Bir dahaki sefere...</p>
+        <div
+            class="bg-white rounded-[2rem] p-8 text-center shadow-2xl max-w-sm w-full transform transition-all duration-500">
+            <div class="text-7xl mb-4">
+                <span x-show="lastResult === 'CORRECT'">🎉</span>
+                <span x-show="lastResult === 'WRONG'">❌</span>
+            </div>
+
+            <h2 class="text-4xl font-black mb-2 text-slate-900"
+                x-text="lastResult === 'CORRECT' ? 'DOĞRU!' : 'YANLIŞ!'"></h2>
+
+            <div x-show="lastResult === 'CORRECT'" class="mb-4">
+                <span class="text-3xl font-black text-green-600">+<span x-text="lastPoints"></span></span>
+                <span class="text-slate-500 text-sm font-bold ml-1">PUAN</span>
+            </div>
+
+            <div class="bg-slate-100 rounded-xl p-4 mt-6 text-left">
+                <div class="text-xs text-slate-500 font-bold uppercase mb-1">Doğru Cevap</div>
+                <div class="text-lg font-bold text-slate-900 leading-tight"
+                    x-text="feedbackCorrectAnswer || 'Belirtilmedi'"></div>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-4 mt-2 text-left border border-slate-200">
+                <div class="text-xs text-slate-400 font-bold uppercase mb-1">Soru</div>
+                <div class="text-sm font-medium text-slate-600 leading-tight" x-text="feedbackQuestion"></div>
+            </div>
+
+            <div x-show="streak > 2" class="mt-4 flex justify-center items-center gap-2 text-orange-500 font-bold">
+                <span>🔥</span>
+                <span><span x-text="streak"></span> Seri!</span>
+            </div>
+        </div>
     </div>
 
     <!-- 6. GAME OVER -->
@@ -584,6 +612,10 @@
                         if (data.streak) this.streak = data.streak; else this.streak = 0;
                         if (data.points_added) this.lastPoints = data.points_added;
 
+                        // New fields
+                        this.feedbackQuestion = data.question_text || '';
+                        this.feedbackCorrectAnswer = data.correct_answer || '';
+
                         // Audio Feedback
                         if (this.lastResult === 'CORRECT') {
                             this.sounds.correct.currentTime = 0;
@@ -624,7 +656,7 @@
                         time_left: estTimeLeft
                     }));
 
-                    this.state = 'WAITING';
+                    this.state = 'ANSWER_SENT';
                 },
 
                 setPin(event) {

@@ -108,8 +108,41 @@ class GameManager:
                 "theme": session.quiz.get('theme', 'standard'),
                 "score": 0
             })
+            
+            # --- Late Join Handling ---
+            if session.state == "QUESTION":
+                # Send current question payload immediately
+                q = session.quiz['questions'][session.current_question_index]
+                settings = session.quiz.get('settings', {})
+                show_on_phone = settings.get('show_question_on_player', False)
+                
+                # Check options
+                options = session.current_shuffled_options if session.current_shuffled_options else q['options']
+                
+                await player_ws.send_json({
+                    "type": "NEW_QUESTION",
+                    "text": q['text'] if show_on_phone else "",
+                    "time": q['time'], # Ideally remaining time, but full time is fine for sync
+                    "q_type": q['type'],
+                    "image": q.get('image') if show_on_phone else None,
+                    "options": [o['text'] for o in options] if show_on_phone else [],
+                    "options_count": len(options)
+                })
+            elif session.state == "LEADERBOARD":
+                 # Send leaderboard wait screen
+                 # We don't send individual result since they didn't play, but maybe just leaderboard data?
+                 # Or just wait state. Frontend defaults to WAITING so it's fine.
+                 pass
+
             return True
         return False
+
+    async def end_game(self, pin: str):
+        if pin in self.active_games:
+            session = self.active_games[pin]
+            session.state = "END"
+            await session.broadcast({"type": "GAME_OVER", "leaderboard": self.get_leaderboard(session)})
+            # We don't remove game immediately so they can see results. Host can leave manually.
 
     async def start_game(self, pin: str):
         if pin in self.active_games:
@@ -196,8 +229,6 @@ class GameManager:
 
             if q_type == 'poll':
                 # Polls have no correct answer, just acknowledge
-                # Logic to track vote counts would go here (omitted for MVP)
-                # Just give 0 points or maybe participation points? Let's say 0 but 'correct' feedback
                 is_correct = True 
                 points = 0
             
@@ -209,13 +240,10 @@ class GameManager:
             
             elif q_type == 'marked_answer':
                 # Answer is "x,y" string
-                # Correct is "tx,ty" string
                 try:
                     user_x, user_y = map(float, str(answer).split(','))
                     target_x, target_y = map(float, q['options'][0]['text'].split(','))
-                    
                     # Distance check (Euclidean)
-                    # Let's say 8% tolerance radius
                     dist = ((user_x - target_x)**2 + (user_y - target_y)**2) ** 0.5
                     if dist <= 8.0:
                         is_correct = True
@@ -224,9 +252,7 @@ class GameManager:
 
             else: 
                 # Multiple Choice / True-False (Index based)
-                # Use shuffled options if available
                 options = session.current_shuffled_options if session.current_shuffled_options else q['options']
-                
                 try:
                     ans_idx = int(answer)
                     if 0 <= ans_idx < len(options):
@@ -235,24 +261,47 @@ class GameManager:
                 except:
                     is_correct = False
 
+            # Calculate points if correct
             if is_correct:
-                # Calculate points
-                if points == 0 and q_type != 'poll': # If not set above
+                if points == 0 and q_type != 'poll': 
                     max_points = q['points']
                     ratio = time_left / q['time'] 
                     points = int(max_points * (0.5 + (ratio * 0.5))) # Minimum 50% points for correct
             
+            # Prepare feedback data
+            current_q = session.quiz['questions'][session.current_question_index]
+            correct_answer_text = ""
+            
+            # Find correct answer text
+            if current_q['type'] in ['multiple_choice', 'true_false']:
+                 options = session.current_shuffled_options if session.current_shuffled_options else current_q['options']
+                 for opt in options:
+                     if opt['is_correct']:
+                         correct_answer_text = opt['text']
+                         break
+            elif current_q['type'] == 'typing':
+                 correct_answer_text = current_q['options'][0]['text']
+
+            # Update Player State
             if is_correct:
                 player.streak += 1
                 player.score += points
                 player.last_answer_correct = True
                 player.last_points = points
-                msg = {"type": "FEEDBACK", "result": "CORRECT", "score": player.score, "points_added": points, "streak": player.streak}
             else:
                 player.streak = 0
                 player.last_answer_correct = False
                 player.last_points = 0
-                msg = {"type": "FEEDBACK", "result": "WRONG", "score": player.score, "streak": 0}
+
+            msg = {
+                "type": "FEEDBACK", 
+                "result": "CORRECT" if is_correct else "WRONG", 
+                "score": player.score, 
+                "points_added": points if is_correct else 0, 
+                "streak": player.streak,
+                "question_text": current_q['text'],
+                "correct_answer": correct_answer_text
+            }
             
             try:
                 await player.websocket.send_json(msg)

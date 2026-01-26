@@ -541,6 +541,12 @@
                     this.toggleMute();
                 },
 
+                endGame() {
+                    if (confirm('Oyunu sonlandırmak istediğine emin misin?')) {
+                        this.ws.send(JSON.stringify({ type: 'END_GAME' }));
+                    }
+                },
+
                 sounds: {
                     // Lobby: "Lofi Study" style - Calm, repetitive, relaxing
                     lobby: new Audio('https://cdn.pixabay.com/audio/2022/02/07/audio_1204a3f121.mp3'),
