@@ -44,19 +44,42 @@ class GameManager:
             if pin not in self.active_games:
                 return pin
 
-    async def create_game(self, quiz_data: dict, host_ws: WebSocket) -> str:
+    async def create_game(self, quiz_data: dict, host_ws: WebSocket, custom_pin: str = None) -> str:
         quiz_id = quiz_data.get('id')
         
-        # Reuse existing PIN for this quiz if available
-        if quiz_id and quiz_id in self.quiz_pins:
-            pin = self.quiz_pins[quiz_id]
-            # Remove old session if exists
+        pin = None
+        
+        # 1. Try Custom PIN
+        if custom_pin:
+            # Force string and strip
+            custom_pin = str(custom_pin).strip()[:6].upper()
+            if len(custom_pin) > 0:
+                # Check if taken
+                if custom_pin in self.active_games:
+                    # If taken by SAME quiz, it's fine, we'll overwrite
+                    # If taken by another, we generate random fallback? 
+                    # User expects this PIN. Let's reuse it and kick the old one.
+                    self.remove_game(custom_pin)
+                
+                pin = custom_pin
+        
+        # 2. If no custom pin or failed, use existing if available
+        if not pin and quiz_id and quiz_id in self.quiz_pins:
+            existing = self.quiz_pins[quiz_id]
+            if existing in self.active_games:
+                # Check stale?
+                pass
+            pin = existing
+            # Refresh session
             if pin in self.active_games:
                 self.remove_game(pin)
-        else:
+        
+        # 3. Generate New
+        if not pin:
             pin = self.generate_pin()
-            if quiz_id:
-                self.quiz_pins[quiz_id] = pin
+            
+        if quiz_id:
+            self.quiz_pins[quiz_id] = pin
         
         session = GameSession(quiz_data, host_ws)
         self.active_games[pin] = session
@@ -246,11 +269,17 @@ class GameManager:
                     "total": total_players
                 })
             except: pass
+            
+            # Auto-End Question if everyone answered
+            if answered_count >= total_players and total_players > 0:
+                 # Small delay or immediate? User said process "hemen" (immediate).
+                 # Ideally we cancel the host-side timer, but showing leaderboard does that by changing state.
+                 await self.show_leaderboard(pin)
 
     def get_leaderboard(self, session: GameSession):
-        # Return top 5
+        # Return top 50 (effectively all active players for standard games)
         sorted_players = sorted(session.players.values(), key=lambda p: p.score, reverse=True)
-        return [{"nickname": p.nickname, "score": p.score} for p in sorted_players[:5]]
+        return [{"nickname": p.nickname, "score": p.score} for p in sorted_players[:50]]
 
     async def show_leaderboard(self, pin: str):
         if pin in self.active_games:

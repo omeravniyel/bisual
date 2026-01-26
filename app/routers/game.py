@@ -29,6 +29,13 @@ async def websocket_host(websocket: WebSocket, quiz_id: int):
     await websocket.accept()
     print(f"WS HOST: Connection accepted for quiz {quiz_id}")
     
+    # Extract Query Params
+    qp = websocket.query_params
+    custom_pin = qp.get("pin")
+    # Parse booleans manually (JS sends 'true'/'false' strings)
+    show_q = qp.get("show_questions") == 'true'
+    shuffle_opt = qp.get("shuffle") == 'true'
+
     # Manual Session Management
     db = SessionLocal()
     
@@ -48,12 +55,17 @@ async def websocket_host(websocket: WebSocket, quiz_id: int):
 
         print(f"WS HOST: Quiz found: {quiz.title}")
         
+        # Prepare Settings (Merge DB settings with overrides)
+        current_settings = quiz.settings or {}
+        if "show_questions" in qp: current_settings['show_question_on_player'] = show_q
+        if "shuffle" in qp: current_settings['shuffle_options'] = shuffle_opt
+
         # Convert to dict
         quiz_data = {
             "id": quiz.id,
             "title": quiz.title,
             "theme": quiz.theme,
-            "settings": quiz.settings or {},
+            "settings": current_settings,
             "questions": []
         }
         
@@ -70,14 +82,14 @@ async def websocket_host(websocket: WebSocket, quiz_id: int):
 
         # Creative Game Session
         print("WS HOST: Creating game session...")
-        pin = await game_manager.create_game(quiz_data, websocket)
+        pin = await game_manager.create_game(quiz_data, websocket, custom_pin=custom_pin)
         print(f"WS HOST: Game created with PIN {pin}")
         
         # Send PIN to Host
         await websocket.send_json({
             "type": "GAME_CREATED", 
             "pin": pin,
-            "settings": quiz.settings or {}
+            "settings": current_settings
         })
         
         # Loop

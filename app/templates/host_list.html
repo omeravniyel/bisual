@@ -323,13 +323,13 @@
                             </svg>
                         </a>
                         <!-- Play -->
-                        <a href="/host/{{ quiz.id }}"
-                            class="col-span-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center justify-center shadow-lg">
+                        <button @click="openLaunchModal({{ quiz.id }})"
+                            class="col-span-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold flex items-center justify-center shadow-lg transition-transform active:scale-95">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                             </svg>
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -453,6 +453,63 @@
         </div>
     </div>
 
+    <!-- Launch Options Modal -->
+    <div x-show="showLaunchModal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" x-cloak>
+        <div class="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl p-8 relative"
+            @click.outside="showLaunchModal = false">
+
+            <button @click="showLaunchModal = false"
+                class="absolute top-4 right-4 text-slate-500 hover:text-white text-2xl">×</button>
+
+            <h2 class="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                <span class="text-3xl">🚀</span> Yarışmayı Başlat
+            </h2>
+
+            <div class="space-y-6">
+                <!-- Custom PIN -->
+                <div>
+                    <label class="block text-slate-400 text-xs font-bold uppercase mb-2">Özel Game PIN (İsteğe
+                        Bağlı)</label>
+                    <input type="text" x-model="launchSettings.customPin" maxlength="6" placeholder="Örn: 123456"
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white font-mono text-xl tracking-widest text-center focus:border-indigo-500 outline-none uppercase placeholder-slate-600">
+                    <p class="text-xs text-slate-500 mt-2 text-center">Boş bırakırsanız rastgele oluşturulur.</p>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Toggle 1 -->
+                    <label
+                        class="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl cursor-pointer hover:bg-slate-800 transition">
+                        <span class="text-white font-bold text-sm">Soruları Telefondan Göster</span>
+                        <div class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" x-model="launchSettings.showQuestions" class="sr-only peer">
+                            <div
+                                class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500">
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Toggle 2 -->
+                    <label
+                        class="flex items-center justify-between bg-slate-800/50 p-4 rounded-xl cursor-pointer hover:bg-slate-800 transition">
+                        <span class="text-white font-bold text-sm">Şıkları Karıştır</span>
+                        <div class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" x-model="launchSettings.shuffleOptions" class="sr-only peer">
+                            <div
+                                class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500">
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                <button @click="startGame()"
+                    class="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-lg shadow-lg shadow-indigo-600/30 transition transform hover:scale-[1.02] active:scale-[0.98]">
+                    BAŞLAT &rarr;
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
     <div x-show="showSettings" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         x-cloak>
@@ -523,20 +580,39 @@
         function hostDashboard() {
             return {
                 search: '',
-                showCreateSelection: false,
-                showSettings: false,
-                showPreview: false,
-                previewQuiz: null,
-                previewLoading: false,
-                showUpload: false,
-                uploading: false,
-                showAiModal: false,
-                aiLoading: false,
-                aiTopic: '',
-                aiCount: 10,
-                aiDifficulty: 'medium',
+                showLaunchModal: false,
+                launchQuizId: null,
+                launchSettings: {
+                    customPin: '',
+                    showQuestions: false,
+                    shuffleOptions: true
+                },
+
+                openLaunchModal(id) {
+                    this.launchQuizId = id;
+                    this.showLaunchModal = true;
+                    // Reset defaults
+                    this.launchSettings = {
+                        customPin: '',
+                        showQuestions: false,
+                        shuffleOptions: true
+                    };
+                },
+
+                startGame() {
+                    if (!this.launchQuizId) return;
+
+                    const params = new URLSearchParams();
+                    if (this.launchSettings.customPin) params.append('pin', this.launchSettings.customPin);
+                    params.append('show_questions', this.launchSettings.showQuestions);
+                    params.append('shuffle', this.launchSettings.shuffleOptions);
+
+                    window.location.href = `/host/${this.launchQuizId}?${params.toString()}`;
+                },
 
                 async createAiQuiz() {
+                    // ... existing code ...
+
                     if (!this.aiTopic) return alert('Lütfen bir konu girin.');
                     this.aiLoading = true;
                     try {

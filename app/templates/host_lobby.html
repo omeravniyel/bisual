@@ -332,36 +332,47 @@
             x-transition:enter="transition ease-out duration-500" x-transition>
 
             <!-- Question Container -->
-            <div class="flex-1 flex flex-col items-center justify-center mb-6 relative">
+            <div class="flex-1 flex flex-col items-center justify-center mb-6 relative w-full">
                 <!-- Timer Circle -->
-                <div class="absolute top-0 right-0 m-4">
-                    <div class="w-24 h-24 rounded-full glass-panel flex items-center justify-center border-4 relative overflow-hidden"
-                        :class="timer <= 5 ? 'border-red-500 animate-pulse' : 'border-indigo-400'">
+                <div class="absolute top-0 right-0 m-4 z-20">
+                    <div class="w-24 h-24 rounded-full glass-panel flex items-center justify-center border-4 relative overflow-hidden shadow-lg transition-colors duration-300"
+                        :class="timer <= 5 ? 'border-red-500 animate-pulse bg-red-500/10' : 'border-indigo-500 dark:border-indigo-400 bg-white/50 dark:bg-black/20'">
                         <div class="absolute inset-0 bg-indigo-500/20"
                             :style="'height: ' + (timer/currentQuestion.time_limit)*100 + '%'"></div>
-                        <span class="text-4xl font-black text-white relative z-10" x-text="timer"></span>
+                        <span class="text-4xl font-black relative z-10 text-slate-800 dark:text-white"
+                            x-text="timer"></span>
                     </div>
                 </div>
 
                 <!-- Answer Counter -->
-                <div class="absolute top-0 left-0 m-4 glass-panel px-6 py-3 rounded-2xl flex flex-col items-center"
+                <div class="absolute top-0 left-0 m-4 glass-panel px-6 py-3 rounded-2xl flex flex-col items-center shadow-lg transform hover:scale-105 transition-transform z-20 bg-white/50 dark:bg-white/10"
                     x-show="!showAnswer">
-                    <span class="text-4xl font-black text-white" x-text="answeredCount"></span>
-                    <span class="text-xs text-slate-400 font-bold uppercase">Cevap</span>
+                    <span class="text-4xl font-black text-slate-800 dark:text-white" x-text="answeredCount"></span>
+                    <span
+                        class="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Cevap</span>
                 </div>
 
-                <!-- Question Text -->
-                <h2 class="text-5xl md:text-6xl font-black text-center text-white leading-tight drop-shadow-2xl max-w-5xl z-10"
-                    x-text="currentQuestion.text"></h2>
+                <!-- Question Text Card -->
+                <div
+                    class="glass-panel p-8 md:p-12 rounded-[3rem] shadow-2xl max-w-6xl w-full text-center relative overflow-hidden group animate-float border-2 border-white/20">
+                    <!-- decorative shine -->
+                    <div
+                        class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50">
+                    </div>
+
+                    <h2 class="font-black leading-tight drop-shadow-sm z-10 relative transition-all duration-300 text-slate-800 dark:text-white"
+                        :class="currentQuestion.text?.length > 100 ? 'text-3xl md:text-5xl' : (currentQuestion.text?.length > 50 ? 'text-4xl md:text-6xl' : 'text-5xl md:text-7xl')"
+                        x-text="currentQuestion.text"></h2>
+                </div>
 
                 <!-- Image -->
                 <img x-show="currentQuestion.image" :src="currentQuestion.image"
-                    class="mt-8 max-h-[300px] rounded-2xl border-4 border-white/10 shadow-2xl hover:scale-105 transition-transform duration-500">
+                    class="mt-8 max-h-[300px] rounded-2xl border-4 border-white dark:border-white/10 shadow-2xl hover:scale-105 transition-transform duration-500 object-cover bg-white">
 
                 <!-- Manual Next -->
                 <button @click="ws.send(JSON.stringify({ type: 'NEXT_QUESTION' }))"
                     x-show="showAnswer && settings.show_leaderboard_every_question === false && currentQuestionIndex < totalQuestions - 1"
-                    class="mt-12 btn-premium px-12 py-4 rounded-xl text-xl font-bold text-white shadow-xl z-20">
+                    class="mt-12 btn-premium px-12 py-4 rounded-xl text-xl font-bold text-white shadow-xl z-20 hover:scale-105 active:scale-95 transition-all">
                     Sonraki Soru ➡️
                 </button>
             </div>
@@ -405,7 +416,7 @@
                 LİDER TAHTASI
             </h2>
 
-            <div class="w-full space-y-3 glass-panel p-8 rounded-3xl">
+            <div class="w-full space-y-3 glass-panel p-8 rounded-3xl max-h-[60vh] overflow-y-auto custom-scrollbar">
                 <template x-for="(entry, index) in leaderboard" :key="index">
                     <div class="lb-row p-4 rounded-xl flex justify-between items-center transition-transform hover:scale-[1.02]"
                         :class="index === 0 ? 'first' : (index === 1 ? 'second' : (index === 2 ? 'third' : ''))">
@@ -531,8 +542,10 @@
                 },
 
                 sounds: {
-                    lobby: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
-                    question: new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'),
+                    // Lobby: "Lofi Study" style - Calm, repetitive, relaxing
+                    lobby: new Audio('https://cdn.pixabay.com/audio/2022/02/07/audio_1204a3f121.mp3'),
+                    // Question: "Soft Ambient" - Thinking music, not stressful
+                    question: new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_275553b927.mp3'),
                     join: new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg'),
                     timeup: new Audio('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'),
                     end: new Audio('https://actions.google.com/sounds/v1/cartoon/magic_chime.ogg'),
@@ -619,7 +632,8 @@
 
                 connect(quizId) {
                     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                    const wsUrl = `${protocol}//${window.location.host}/ws/host/${quizId}`;
+                    // Pass current page query params (pin, settings) to WebSocket
+                    const wsUrl = `${protocol}//${window.location.host}/ws/host/${quizId}${window.location.search}`;
                     this.ws = new WebSocket(wsUrl);
 
                     this.ws.onmessage = (event) => this.handleMessage(JSON.parse(event.data));
