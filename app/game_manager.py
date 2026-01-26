@@ -335,7 +335,7 @@ class GameManager:
     def get_leaderboard(self, session: GameSession):
         # Return top 50 (effectively all active players for standard games)
         sorted_players = sorted(session.players.values(), key=lambda p: p.score, reverse=True)
-        return [{"nickname": p.nickname, "score": p.score, "avatar": p.avatar} for p in sorted_players[:50]]
+        return [{"nickname": p.nickname, "score": p.score, "avatar": p.avatar, "streak": p.streak} for p in sorted_players[:50]]
 
     async def show_leaderboard(self, pin: str):
         if pin in self.active_games:

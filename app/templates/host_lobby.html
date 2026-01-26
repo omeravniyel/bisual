@@ -448,10 +448,18 @@
 
                             <div class="flex items-center gap-3">
                                 <span class="text-3xl" x-text="entry.avatar || '👤'"></span>
-                                <div class="flex flex-col">
-                                    <span x-text="entry.nickname" class="text-2xl font-bold text-white"></span>
+                                <div class="flex flex-col items-start">
+                                    <div class="flex items-center gap-2">
+                                        <span x-text="entry.nickname"
+                                            class="text-2xl font-bold text-white leading-none"></span>
+                                        <!-- Streak Badge -->
+                                        <span x-show="entry.streak > 2"
+                                            class="bg-orange-500/20 text-orange-400 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border border-orange-500/30">
+                                            <span>🔥</span> <span x-text="entry.streak"></span>
+                                        </span>
+                                    </div>
                                     <span x-show="index===0"
-                                        class="text-xs text-yellow-400 font-bold tracking-widest uppercase">Lider</span>
+                                        class="text-xs text-yellow-400 font-bold tracking-widest uppercase mt-1">Lider</span>
                                 </div>
                             </div>
                         </div>
