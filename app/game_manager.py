@@ -7,6 +7,7 @@ class Player:
     def __init__(self, nickname: str, websocket: WebSocket):
         self.nickname = nickname
         self.websocket = websocket
+        self.avatar = "👤" # Default
         self.score = 0
         self.streak = 0
         self.has_answered = False
@@ -96,10 +97,13 @@ class GameManager:
             session.players[nickname] = Player(nickname, player_ws)
             
             # Notify Host about new player
+            players_list = [{"nickname": p.nickname, "avatar": p.avatar if hasattr(p, 'avatar') else "👤"} for p in session.players.values()]
+            
             await session.host_websocket.send_json({
                 "type": "PLAYER_JOINED",
                 "nickname": nickname,
-                "count": len(session.players)
+                "count": len(session.players),
+                "players_list": players_list
             })
 
             # Send Success and Theme to Player
