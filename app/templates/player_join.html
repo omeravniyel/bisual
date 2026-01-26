@@ -547,18 +547,53 @@
         x-transition.opacity>
         <h2 class="text-4xl font-black text-white mb-6">Liderlik Tablosu</h2>
         <div class="glass-panel p-6 rounded-3xl w-full max-w-md">
-            <template x-for="(player, index) in leaderboardData" :key="player.nickname">
+            <template x-for="(player, index) in leaderboardData.slice(0, 5)" :key="player.nickname">
                 <div class="flex items-center justify-between py-3 border-b border-white/10 last:border-b-0">
                     <div class="flex items-center gap-3">
                         <span class="text-xl font-bold text-indigo-300" x-text="index + 1 + '.'"></span>
                         <span class="text-2xl" x-text="player.avatar"></span>
-                        <span class="text-xl font-bold text-white" x-text="player.nickname"></span>
+                        <span class="text-xl font-bold text-white truncate max-w-[120px]"
+                            x-text="player.nickname"></span>
                     </div>
                     <span class="text-xl font-bold text-indigo-400" x-text="player.score"></span>
                 </div>
             </template>
         </div>
         <p class="text-slate-400 mt-6">Sıradaki soru bekleniyor...</p>
+    </div>
+
+    <!-- 8. GAMEOVER / PODIUM -->
+    <div x-show="state === 'GAMEOVER'"
+        class="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-hidden relative"
+        x-transition:enter="transition ease-out duration-1000">
+
+        <h1 class="text-5xl font-black text-white mb-8 animate-pulse">OYUN BİTTİ!</h1>
+
+        <!-- My Result -->
+        <div class="glass-panel p-6 rounded-3xl w-full max-w-sm mb-8 transform scale-105 border-2 border-indigo-500/50">
+            <div class="text-slate-400 font-bold uppercase text-sm mb-2">SENİN SKORUN</div>
+            <div class="text-6xl font-black text-white mb-2" x-text="score"></div>
+            <div class="inline-block bg-indigo-600 px-4 py-1 rounded-full text-white font-bold text-sm">
+                <span x-text="getMyRank()"></span>. Sıradasın
+            </div>
+        </div>
+
+        <!-- Top 3 -->
+        <div class="w-full max-w-sm space-y-3">
+            <h3 class="text-slate-400 font-bold text-sm uppercase mb-4">LİDERLER</h3>
+            <template x-for="(player, index) in leaderboardData.slice(0, 3)" :key="player.nickname">
+                <div class="bg-black/20 p-4 rounded-xl flex items-center justify-between border border-white/5"
+                    :class="{'border-yellow-400/50 bg-yellow-400/10': index === 0}">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl" x-text="['🥇','🥈','🥉'][index]"></span>
+                        <span class="text-white font-bold truncate max-w-[120px]" x-text="player.nickname"></span>
+                    </div>
+                    <span class="font-mono text-indigo-300 font-bold" x-text="player.score"></span>
+                </div>
+            </template>
+        </div>
+
+        <a href="/" class="mt-8 text-white/50 underline text-sm">Çıkış Yap</a>
     </div>
 
     <script>
@@ -689,12 +724,12 @@
                             this.streak = data.streak;
                         }
                         else if (data.type === 'GAME_OVER') {
-                            alert("Oyun Bitti! Skorun: " + this.score);
-                            window.location.reload();
+                            this.leaderboardData = data.leaderboard || [];
+                            this.state = 'GAMEOVER';
                         }
-                    },
+                    };
 
-                        submitAnswer(answer) {
+                    submitAnswer(answer) {
                         if (this.state !== 'ANSWERING') return;
 
                         // Haptic Feedback
@@ -719,23 +754,30 @@
                         this.pinCoords = { x: x.toFixed(2), y: y.toFixed(2) };
                     },
 
+                    getMyRank() {
+                        const idx = this.leaderboardData.findIndex(p => p.nickname === this.nickname);
+                        return idx >= 0 ? idx + 1 : '-';
+                    },
+
                     startTimer(seconds) {
                         clearInterval(this.timerInterval);
                         this.timerPercent = 100;
                         this.timerValue = seconds; // Set text timer
-                        const step = 100 / (seconds * 10);
+
+                        const startTime = Date.now();
+                        const endTime = startTime + (seconds * 1000);
 
                         this.timerInterval = setInterval(() => {
-                            this.timerPercent -= step;
-                            // Update text timer every second approximately
-                            if (this.timerPercent % (100 / seconds) < step) {
-                                this.timerValue = Math.ceil(this.timerPercent / (100 / seconds));
-                            }
+                            const now = Date.now();
+                            const remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+                            this.timerValue = remaining;
+                            this.timerPercent = (remaining / seconds) * 100;
 
-                            if (this.timerPercent <= 0) {
+                            if (remaining <= 0) {
                                 clearInterval(this.timerInterval);
-                                this.timerValue = 0;
-                                // Time's up logic if needed
+                                if (this.state === 'ANSWERING') {
+                                    this.state = 'ANSWER_SENT'; // Times up
+                                }
                             }
                         }, 100);
                     }
